@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Wczytanie danych
 file_path = 'data/whoop_fitness_dataset_100k.csv'
@@ -16,7 +19,7 @@ good_columns = [
     'rem_sleep_hours', 'wake_ups',  # Sen
 
     'day_strain', 'activity_strain', 'activity_duration_min',
-    'calories_burned', 'workout_completed'
+    'calories_burned', 'workout_completed'  # Obciążenia i aktywność
 ]
 
 # Przycięcie ramki danych do istotnych kolumn
@@ -32,8 +35,22 @@ df_model['restorative_sleep_hours'] = df_model['deep_sleep_hours'] + df_model['r
 
 # Preprocessing danych
 # Czyszczenie danych z brakujących danych
-
 print(f"Liczba wierszy przed czyszczeniem: {len(df_model)}")
+print(f"Liczba brakujących danych: {df_model.isna().sum()}")
+missing_values = df_model.isna().sum()
 df_cleaned = df_model.dropna()
 print(f"Liczba wierszy po czyszczeniem: {len(df_cleaned)}")
+print("Przykładowe dane: \n", df_cleaned.head())
+print("Przykładowe dane: \n", df_cleaned.tail())
 
+# Mapa Korelacji kolumn numerycznych
+numeric_df = df_cleaned.select_dtypes(include=[np.number])
+if numeric_df.shape[1] >= 4:
+    plt.figure(figsize=(12,10))
+    sns.heatmap(numeric_df.corr(), annot=True, fmt=".2f", cmap='coolwarm')
+    plt.title('Heatmapa korelacji danych numerycznych')
+    plt.show()
+
+corr_matrix = numeric_df.corr()
+recovery_corr = corr_matrix['recovery_score'].sort_values(ascending=False)
+print("Zestawienie korelacji z 'Recovery Score':\n", recovery_corr)

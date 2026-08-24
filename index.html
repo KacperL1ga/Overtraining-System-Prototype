@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Overtraining System Prototype</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2rem; max-width: 860px; }
+      .card { border: 1px solid #ddd; border-radius: 10px; padding: 1rem; margin-top: 1rem; }
+      .result { font-size: 1.1rem; margin: 0.6rem 0; }
+      .error { color: #b00020; }
+    </style>
+  </head>
+  <body>
+    <h1>Overtraining System Prototype</h1>
+    <p>
+      Wgraj plik CSV z danymi medycznymi, aby obliczyć prawdopodobieństwo przetrenowania
+      i poziom regeneracji na podstawie wyuczonego modelu ML.
+    </p>
+
+    <div class="card">
+      <label for="fileInput">Plik CSV:</label>
+      <input id="fileInput" type="file" accept=".csv,text/csv" />
+      <button id="analyzeButton" type="button">Analizuj</button>
+      <p>
+        Wymagane pola: <code>resting_hr</code>, <code>hrv</code>, <code>sleep_hours</code>,
+        <code>training_load</code>, <code>soreness</code>. Opcjonalnie: <code>mood</code>.
+      </p>
+    </div>
+
+    <div id="output" class="card" hidden>
+      <p class="result" id="riskResult"></p>
+      <p class="result" id="recoveryResult"></p>
+      <h2>Porady</h2>
+      <ul id="adviceList"></ul>
+    </div>
+
+    <p id="error" class="error" role="alert"></p>
+
+    <script type="module">
+      import { parseMedicalCsv, evaluateMetrics, generateAdvice } from "./app.mjs";
+
+      const fileInput = document.getElementById("fileInput");
+      const analyzeButton = document.getElementById("analyzeButton");
+      const output = document.getElementById("output");
+      const riskResult = document.getElementById("riskResult");
+      const recoveryResult = document.getElementById("recoveryResult");
+      const adviceList = document.getElementById("adviceList");
+      const errorElement = document.getElementById("error");
+
+      const readFileAsText = (file) =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result ?? ""));
+          reader.onerror = () => reject(new Error("Nie udało się odczytać pliku."));
+          reader.readAsText(file);
+        });
+
+      analyzeButton.addEventListener("click", async () => {
+        output.hidden = true;
+        adviceList.innerHTML = "";
+        errorElement.textContent = "";
+
+        const file = fileInput.files?.[0];
+        if (!file) {
+          errorElement.textContent = "Wybierz plik CSV do analizy.";
+          return;
+        }
+
+        try {
+          const csvText = await readFileAsText(file);
+          const data = parseMedicalCsv(csvText);
+          const metrics = evaluateMetrics(data);
+          const advice = generateAdvice(metrics);
+
+          riskResult.textContent = `Prawdopodobieństwo przetrenowania: ${metrics.overtrainingProbability}%`;
+          recoveryResult.textContent = `Poziom regeneracji: ${metrics.regenerationLevel}%`;
+
+          for (const item of advice) {
+            const li = document.createElement("li");
+            li.textContent = item;
+            adviceList.appendChild(li);
+          }
+
+          output.hidden = false;
+        } catch (error) {
+          errorElement.textContent = error instanceof Error ? error.message : "Wystąpił błąd analizy.";
+        }
+      });
+    </script>
+  </body>
+</html>

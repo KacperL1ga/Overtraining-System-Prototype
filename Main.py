@@ -3,6 +3,11 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
+from networkx.algorithms.bipartite.basic import color
+from numpy.ma.core import indices
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score, mean_absolute_error
 
 # Wczytanie danych
 file_path = 'data/whoop_fitness_dataset_100k.csv'
@@ -54,3 +59,35 @@ if numeric_df.shape[1] >= 4:
 corr_matrix = numeric_df.corr()
 recovery_corr = corr_matrix['recovery_score'].sort_values(ascending=False)
 print("Zestawienie korelacji z 'Recovery Score':\n", recovery_corr)
+
+# Przygotowania pod Algorytm Random Forest
+features = numeric_df.drop(columns=['recovery_score'])
+target = numeric_df['recovery_score']
+
+# Podział danych na testowe i treningowe
+X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
+
+# Inicjalizacja algorytmu
+randomF = RandomForestRegressor(n_estimators=100, random_state=42)
+randomF.fit(X_train, y_train)
+
+# Predykcje na testowym zbiorze danych
+prediction = randomF.predict(X_test)
+
+# Ocena stworzonego modelu
+r2 = r2_score(y_test, prediction)
+mea = mean_absolute_error(y_test, prediction)
+print(f"R2 Score: {r2}")
+print(f"Mean absolute error: {mea}")
+
+# Wizualizacja istotności cech przy predykcji
+importances = randomF.feature_importances_
+indices = np.argsort(importances)[::-1]
+
+plt.figure(figsize=(12,8))
+plt.barh(range(len(indices)), importances[indices], align='center', color='teal')
+plt.yticks(range(len(indices)), features.columns[indices])
+plt.xlabel("Istotnosc cech")
+plt.title("Random Forest insotnosc cech")
+plt.gca().invert_yaxis()
+plt.show()

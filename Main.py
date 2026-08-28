@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
-from networkx.algorithms.bipartite.basic import color
-from numpy.ma.core import indices
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score, mean_absolute_error
@@ -12,57 +12,47 @@ from sklearn.metrics import r2_score, mean_absolute_error
 # Wczytanie danych
 file_path = 'data/whoop_fitness_dataset_100k.csv'
 df = pd.read_csv(file_path)
+df['date'] = pd.to_datetime(df['date'])
+df = df.sort_values(by=['user_id', 'date'])
 
-# Wybór istotnych kolumn
-good_columns = [
-    'recovery_score',   # cel
-
-    'hrv', 'resting_heart_rate', 'hrv_baseline', 'rhr_baseline',
-    'respiratory_rate', 'skin_temp_deviation',  # Fizjologia i Kardiologia
-
-    'sleep_hours', 'sleep_efficiency', 'deep_sleep_hours',
-    'rem_sleep_hours', 'wake_ups',  # Sen
-
-    'day_strain', 'activity_strain', 'activity_duration_min',
-    'calories_burned', 'workout_completed'  # Obciążenia i aktywność
-]
-
-# Przycięcie ramki danych do istotnych kolumn
-df_model = df[good_columns].copy()
-
-# Inżynieria cech (Feature Engineering
+# Inżynieria cech (Feature Engineering)
 # Odchylenie HRV i RHR od osobistej normy użytkownika
-df_model['hrv_deviation'] = df_model['hrv'] - df_model['hrv_baseline']
-df_model['rhr_deviation'] = df_model['resting_heart_rate'] - df_model['rhr_baseline']
+df['hrv_deviation'] = df['hrv'] - df['hrv_baseline']
+df['rhr_deviation'] = df['resting_heart_rate'] - df['rhr_baseline']
 
 # Łączna długość kluczowych faz snu (Głęboki + REM)
-df_model['restorative_sleep_hours'] = df_model['deep_sleep_hours'] + df_model['rem_sleep_hours']
+df['restorative_sleep_hours'] = df['deep_sleep_hours'] + df['rem_sleep_hours']
 
-# Preprocessing danych
+# Cechy opóźnione (wysiłek i sen z poprzdniego dnia)
+df['prev_day_strain'] = df.groupby('user_id')['day_strain'].shift(1)
+df['prev_sleep_hours'] = df.groupby('user_id')['sleep_hours'].shift(1)
+
+# Czyszczenie wierszy z brakujacymi danymi
 # Czyszczenie danych z brakujących danych
-print(f"Liczba wierszy przed czyszczeniem: {len(df_model)}")
-print(f"Liczba brakujących danych: {df_model.isna().sum()}")
-missing_values = df_model.isna().sum()
-df_cleaned = df_model.dropna()
+df_cleaned = df.dropna().copy()
 print(f"Liczba wierszy po czyszczeniem: {len(df_cleaned)}")
+
+# Wybór istotnych kolumn
+features_cols = [
+    'hrv', 'resting_heart_rate', 'hrv_baseline', 'rhr_baseline',
+    'respiratory_rate', 'skin_temp_deviation', 'hrv_deviation',
+    'rhr_deviation', # Fizjologia i Kardiologia
+
+    'sleep_hours', 'sleep_efficiency', 'deep_sleep_hours',
+    'rem_sleep_hours', 'wake_ups', 'prev_sleep_hours',
+    'restorative_sleep_hours',  # Sen
+
+    'day_strain', 'activity_strain', 'activity_duration_min',
+    'calories_burned', 'workout_completed', 'prev_day_strain'  # Obciążenia i aktywność
+]
+
 print("Przykładowe dane: \n", df_cleaned.head())
 print("Przykładowe dane: \n", df_cleaned.tail())
 
-# Mapa Korelacji kolumn numerycznych
-numeric_df = df_cleaned.select_dtypes(include=[np.number])
-if numeric_df.shape[1] >= 4:
-    plt.figure(figsize=(12,10))
-    sns.heatmap(numeric_df.corr(), annot=True, fmt=".2f", cmap='coolwarm')
-    plt.title('Heatmapa korelacji danych numerycznych')
-    plt.show()
-
-corr_matrix = numeric_df.corr()
-recovery_corr = corr_matrix['recovery_score'].sort_values(ascending=False)
-print("Zestawienie korelacji z 'Recovery Score':\n", recovery_corr)
 
 # Przygotowania pod Algorytm Random Forest
-features = numeric_df.drop(columns=['recovery_score'])
-target = numeric_df['recovery_score']
+features = df_cleaned[features_cols]
+target = df_cleaned['recovery_score']
 
 # Podział danych na testowe i treningowe
 X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)

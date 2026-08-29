@@ -61,8 +61,8 @@ target = df_cleaned['recovery_score']
 X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
 
 # Inicjalizacja algorytmu RandomForest
-#randomF = RandomForestRegressor(n_estimators=100, random_state=42)
-#randomF.fit(X_train, y_train)
+# randomF = RandomForestRegressor(n_estimators=100, random_state=42)
+# randomF.fit(X_train, y_train)
 
 # Inicjalizacja XGBoost
 # xgb = XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42)
@@ -74,16 +74,32 @@ X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
 # Inicjalizacja algorytmu Sieci Neuronowych
-mlp = MLPRegressor(hidden_layer_sizes=(64,32), max_iter=500, random_state=42)
-mlp.fit(X_train_scaled, y_train)
+# mlp = MLPRegressor(hidden_layer_sizes=(64,32), max_iter=500, random_state=42)
+# mlp.fit(X_train_scaled, y_train)
 
 # Predykcje na testowym zbiorze danych
-prediction = mlp.predict(X_test_scaled)
+# prediction = randomF.predict(X_test)
 
-# Ocena stworzonego modelu
-r2 = r2_score(y_test, prediction)
-mea = mean_absolute_error(y_test, prediction)
-rmse = np.sqrt(mean_squared_error(y_test, prediction))
-print(f"R2 Score: {r2}")
-print(f"Mean absolute error: {mea}")
-print(f"Mean squared error: {rmse}")
+# Porównanie modeli
+
+models = {
+    "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1),
+    "XGBoost": XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42),
+    "Siec Neuronowa (MLP)": MLPRegressor(hidden_layer_sizes=(64,32), max_iter=500, random_state=42)
+}
+
+results = []
+
+for name, model in models.items():
+    model.fit(X_train_scaled, y_train)
+    preds = model.predict(X_test_scaled)
+
+    r2 = r2_score(y_test, preds)
+    mea = mean_absolute_error(y_test, preds)
+    rmse = np.sqrt(mean_squared_error(y_test, preds))
+
+    results.append({"Model": name, "R2 Score": r2, "MEA": mea, "RMSE": rmse})
+
+comparison_df = pd.DataFrame(results)
+print("\n---Porównywarka wyników algorytmów---")
+print(comparison_df.to_string(index=False))

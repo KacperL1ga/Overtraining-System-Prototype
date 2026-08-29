@@ -3,11 +3,13 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBRegressor
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score, mean_absolute_error
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
 # Wczytanie danych
 file_path = 'data/whoop_fitness_dataset_100k.csv'
@@ -50,34 +52,40 @@ print("Przykładowe dane: \n", df_cleaned.head())
 print("Przykładowe dane: \n", df_cleaned.tail())
 
 
-# Przygotowania pod Algorytm Random Forest
+# Przygotowanie danych do uczenia
 features = df_cleaned[features_cols]
 target = df_cleaned['recovery_score']
 
 # Podział danych na testowe i treningowe
 X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
 
-# Inicjalizacja algorytmu
-randomF = RandomForestRegressor(n_estimators=100, random_state=42)
-randomF.fit(X_train, y_train)
+# Inicjalizacja algorytmu RandomForest
+#randomF = RandomForestRegressor(n_estimators=100, random_state=42)
+#randomF.fit(X_train, y_train)
+
+# Inicjalizacja XGBoost
+xgb = XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42)
+xgb.fit(X_train, y_train)
 
 # Predykcje na testowym zbiorze danych
-prediction = randomF.predict(X_test)
+prediction = xgb.predict(X_test)
 
 # Ocena stworzonego modelu
 r2 = r2_score(y_test, prediction)
 mea = mean_absolute_error(y_test, prediction)
+rmse = np.sqrt(mean_squared_error(y_test, prediction))
 print(f"R2 Score: {r2}")
 print(f"Mean absolute error: {mea}")
+print(f"Mean squared error: {rmse}")
 
 # Wizualizacja istotności cech przy predykcji
-importances = randomF.feature_importances_
+importances = xgb.feature_importances_
 indices = np.argsort(importances)[::-1]
 
 plt.figure(figsize=(12,8))
 plt.barh(range(len(indices)), importances[indices], align='center', color='teal')
 plt.yticks(range(len(indices)), features.columns[indices])
 plt.xlabel("Istotnosc cech")
-plt.title("Random Forest insotnosc cech")
+plt.title("XGBoost insotnosc cech")
 plt.gca().invert_yaxis()
 plt.show()

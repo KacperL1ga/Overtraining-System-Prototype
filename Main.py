@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -11,6 +10,7 @@ from sklearn.neural_network import MLPRegressor
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+import shap
 
 # Wczytanie danych
 file_path = 'data/whoop_fitness_dataset_100k.csv'
@@ -65,8 +65,8 @@ X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=
 # randomF.fit(X_train, y_train)
 
 # Inicjalizacja XGBoost
-# xgb = XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42)
-# xgb.fit(X_train, y_train)
+xgb = XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42)
+xgb.fit(X_train, y_train)
 
 # Przygotowanie danych pod algorytm Sieci Neuronowych
 scaler = StandardScaler()
@@ -81,7 +81,6 @@ X_test_scaled = scaler.transform(X_test)
 # prediction = randomF.predict(X_test)
 
 # Porównanie modeli
-
 models = {
     "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1),
     "XGBoost": XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42),
@@ -90,16 +89,36 @@ models = {
 
 results = []
 
-for name, model in models.items():
-    model.fit(X_train_scaled, y_train)
-    preds = model.predict(X_test_scaled)
+# for name, model in models.items():
+#    model.fit(X_train_scaled, y_train)
+#    preds = model.predict(X_test_scaled)
+#
+#    r2 = r2_score(y_test, preds)
+#    mea = mean_absolute_error(y_test, preds)
+#    rmse = np.sqrt(mean_squared_error(y_test, preds))
+#
+#    results.append({"Model": name, "R2 Score": r2, "MEA": mea, "RMSE": rmse})
 
-    r2 = r2_score(y_test, preds)
-    mea = mean_absolute_error(y_test, preds)
-    rmse = np.sqrt(mean_squared_error(y_test, preds))
+# comparison_df = pd.DataFrame(results)
+# print("\n---Porównywarka wyników algorytmów---")
+# print(comparison_df.to_string(index=False))
 
-    results.append({"Model": name, "R2 Score": r2, "MEA": mea, "RMSE": rmse})
+# Dodanie eksploratora SHAP dla najlepszego algorytmu
+explainer = shap.TreeExplainer(xgb)
+shap_values = explainer(X_test)
 
-comparison_df = pd.DataFrame(results)
-print("\n---Porównywarka wyników algorytmów---")
-print(comparison_df.to_string(index=False))
+# Przypisanie nazw kolumn do obiektów SHAP
+shap_values.feature_names = features_cols
+
+# Wykres istotnosci i kierunku wplywu cech
+plt.figure(figsize=(10,6))
+shap.summary_plot(shap_values, X_test, feature_names=features_cols, show=False)
+plt.title("Wpływ parametrów na wskaźnik regeneracji", fontsize=12)
+plt.tight_layout()
+plt.show()
+
+# Słupokowy wykres waznosci cech
+plt.figure(figsize=(10,6))
+shap.plots.bar(shap_values, show=False)
+plt.tight_layout()
+plt.show()

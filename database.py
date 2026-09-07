@@ -1,5 +1,7 @@
 import sqlite3
 
+import pandas as pd
+
 # Nazwa lokalnej bazy danych
 DB_NAME = "recovery_app.db"
 
@@ -70,3 +72,14 @@ def save_daily_logs(data: dict):
     cursor.execute(sql, data)
     conn.commit()
     conn.close()
+
+def get_user_history(user_id: str) -> pd.DataFrame:
+    # Pobieranie historii danych uzytkownika z Bazy Danych w postaci DataFrame
+    conn = sqlite3.connect(DB_NAME)
+
+    # Komenda zwracająca dane konkretnego uzytkownika, posortowane po dacie
+    query = "SELECT * FROM daily_logs WHERE user_id = ? ORDER BY ASC"
+    df = pd.read_sql_query(query, conn, params=(user_id,))
+
+    conn.close()
+    return df

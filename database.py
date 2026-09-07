@@ -10,7 +10,7 @@ def init_db():
 
     # Tworzenie tabeli przechowującej dzienne wpisu
     cursor.execute('''
-        CREATE TABLE IF NOT EXIST daily_logs (
+        CREATE TABLE IF NOT EXISTS, daily_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,              -- Identyfikator uzytkownika
             date DATE NOT NULL,                 -- Data pomiaru (YYYY-MM-DD)
@@ -41,5 +41,32 @@ def init_db():
     ''')
 
     # Zapisanie zmian w bazie i zamknięcie połączenia
+    conn.commit()
+    conn.close()
+
+def save_daily_logs(data: dict):
+    # Zapisywanie nowych wartości lub aktualizowanie istniejących
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    # Komenda SQL do zmian w wartosciach, dzieki kluczom ze slowinika
+    sql = '''
+        INSERT OR REPLACE INTO daily_logs (
+            user_id, date,
+            hrv, resting_heart_rate, skin_temp_deviation,
+            hrv_baseline, rhr_baseline, hrv_deviation, rhr_deviation,
+            sleep_hours, sleep_efficiency, deep_sleep_hours, rem_sleep_hours, wake_ups,
+            day_strain, calories_burned, workout_completed,
+            recovery_score
+        ) VALUES (
+            :user_id, :date,
+            :hrv, :resting_heart_rate, :skin_temp_deviation,
+            :hrv_baseline, :rhr_baseline, :hrv_deviation, :rhr_deviation,
+            :sleep_hours, :sleep_efficiency, :deep_sleep_hours, :rem_sleep_hours, :wake_ups,
+            :day_strain, :calories_burned, :workout_completed,
+            :recovery_score
+        )
+    '''
+    cursor.execute(sql, data)
     conn.commit()
     conn.close()

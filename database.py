@@ -12,7 +12,7 @@ def init_db():
 
     # Tworzenie tabeli przechowującej dzienne wpisu
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS, daily_logs (
+        CREATE TABLE IF NOT EXISTS daily_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,              -- Identyfikator uzytkownika
             date DATE NOT NULL,                 -- Data pomiaru (YYYY-MM-DD)
@@ -78,7 +78,7 @@ def get_user_history(user_id: str) -> pd.DataFrame:
     conn = sqlite3.connect(DB_NAME)
 
     # Komenda zwracająca dane konkretnego uzytkownika, posortowane po dacie
-    query = "SELECT * FROM daily_logs WHERE user_id = ? ORDER BY ASC"
+    query = "SELECT * FROM daily_logs WHERE user_id = ? ORDER BY date ASC"
     df = pd.read_sql_query(query, conn, params=(user_id,))
 
     conn.close()

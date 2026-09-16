@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+
 from analytics import calculate_baseline_deviation
 
 # Konfiguracja układu strony
@@ -31,16 +32,29 @@ with col1:
     st.subheader("🫀 Układ krążenia i fizjologia")
     hrv = st.number_input("Aktualne HRV (ms)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
     rhr = st.number_input("Aktualne RHR (bpm)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
+    respiratory_rate = st.number_input("Częstość oddechów (oddechy/min)", min_value=10, max_value=25, value=15, step=1.0)
+    skin_temp_deviation = st.number_input("Odchylenie temp. ciała (°C)", min_value=-3.0, max_value=5.0, value=0.0, step=0.1)
 
 # Środkowa kolumna przechowująca wartości snu
 with col2:
     st.subheader("🛏️ Sen i wypoczynek")
+    sleep_hours = st.number_input("Czas snu (h)", min_value=0.0, max_value=15.0, value=8.0, step=0.5)
     sleep_efficiency = st.slider("Efektywność snu (%)", min_value=50.0, max_value=100.0, value=88.0, step=1.0)
+    deep_sleep_hours = st.number_input("Sen głęboki (h)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
+    rem_sleep_hours = st.number_input("Sen REM (h)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
+    restorative_sleep_hours = st.number_input("Sen regeneracyjny (h)", min_value=0.0, max_value=5.0, value=3.0, step=0.1)
+    prev_sleep_hours = st.number_input("Sen poprzedniej nocy (h)", min_value=0.0, max_value=15.0, value=8.0, step=0.5)
+    wake_ups = st.number_input("Liczba przebudzeń", min_value=0.0, max_value=15, value=2, step=1)
 
 # Prawa kolumna przechowująca wartośći obciążenia i aktywności
 with col3:
     st.subheader("💪 Obciążenia i Aktywność")
+    day_strain = st.slider("Obciążenie dnia (Day Strains)", min_value=0.0, max_value=21.0, value=12.0, step=0.1)
+    activity_strain = st.slider("Obciążenie treningowe", min_value=0.0, max_value=21.0, value=8.0, step=0.1)
+    activity_duration_min = st.number_input("Czas aktywności (min)", min_value=0, max_value=300, value=45, step=5)
+    calories_burned = st.number_input("Spalone kalorie (kcal)", min_value=0, max_value=5000, value=1000, step=50)
     workout_completed = st.selectbox("Czy wykonano trening?", [1,0], format_func=lambda x: 'Tak' if x == 1 else 'Nie')
+    prev_day_strain = st.slider("Obciążenie dnia poprzedniego", min_value=0.0, max_value=21.0, value=10.0, step=0.1)
 
 # Przygotowanie danych wejściowych
 features_cols = [

@@ -151,3 +151,10 @@ with st.expander("📊 Twoja historia pomiarów", expanded=False):
         # Formatowanie daty do wyświetlenia
         df_filtred['date'] = df_filtred['date'].dt.strftime('%Y-%m-%d')
         st.dataframe(df_filtred, use_container_width=True)
+
+        # Sekcja usuwania danych
+        st.markdown("🗑️ Usuwanie wybranych wpisów")
+        del_date = st.date_input("Wybierz datę do usunięcia wpisu", key="del_date")
+        if st.button("Usuń wpis", type="secondary"):
+            delete_daily_log(user_id, str(del_date))
+            st.success(f"Usunięto wpis z dnia {del_date}. Odśwież stronę, aby zobaczyć zmiany.")

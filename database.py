@@ -83,3 +83,14 @@ def get_user_history(user_id: str) -> pd.DataFrame:
 
     conn.close()
     return df
+
+def delete_daily_log(user_id: str, date_str: str):
+    # Usuwanie konkretnego wpisu z bazy danych
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    sql = "DELETE FROM daily_logs WHERE user_id = ? AND date = ?"
+    cursor.execute(sql, (user_id, date_str))
+    
+    conn.commit()
+    conn.close()

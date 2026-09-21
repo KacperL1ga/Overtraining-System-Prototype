@@ -29,9 +29,13 @@ df['rhr_deviation'] = df['resting_heart_rate'] - df['rhr_baseline']
 # Łączna długość kluczowych faz snu (Głęboki + REM)
 df['restorative_sleep_hours'] = df['deep_sleep_hours'] + df['rem_sleep_hours']
 
-# Cechy opóźnione (wysiłek i sen z poprzdniego dnia)
+# Cechy opóźnione (wysiłek i sen z poprzedniego dnia)
 df['prev_day_strain'] = df.groupby('user_id')['day_strain'].shift(1)
 df['prev_sleep_hours'] = df.groupby('user_id')['sleep_hours'].shift(1)
+df['prev_activity_strain'] = df.groupby('user_id')['activity_strain'].shift(1)
+df['prev_calories_burned'] = df.groupby('user_id')['calories_burned'].shift(1)
+df['prev_activity_duration_min'] = df.groupby('user_id')['activity_duration_min'].shift(1)
+df['prev_workout_completed'] = df.groupby('user_id')['workout_completed'].shift(1)
 
 # Czyszczenie wierszy z brakujacymi danymi
 print(f"Liczba wierszy przed czyszczeniem: {len(df)}")
@@ -48,8 +52,8 @@ features_cols = [
     'rem_sleep_hours', 'wake_ups', 'prev_sleep_hours',
     'restorative_sleep_hours',  # Sen
 
-    'day_strain', 'activity_strain', 'activity_duration_min',
-    'calories_burned', 'workout_completed', 'prev_day_strain'  # Obciążenia i aktywność
+    'prev_day_strain', 'prev_activity_strain', 'prev_activity_duration_min',
+    'prev_calories_burned', 'prev_workout_completed'  # Obciążenia i aktywność
 ]
 
 print("Przykładowe dane: \n", df_cleaned.head())

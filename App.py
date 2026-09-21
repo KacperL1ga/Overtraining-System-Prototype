@@ -4,6 +4,10 @@ import numpy as np
 import joblib
 
 from analytics import calculate_baseline_deviation
+from database import init_db, get_user_history, delete_daily_log
+
+# Inicjalizacja bazy danych
+init_db()
 
 # Konfiguracja układu strony
 st.set_page_config(
@@ -22,6 +26,9 @@ model = load_model()
 # Tytuł strony i struktura kolumnowa
 st.title("Kalkulator Regeneracji Organizmu i Niwelowania Przetrenowania")
 st.write("Wprowadź dane biometryczne oraz parametry snu i treningu aby wyznaczyć prognozowany wskaźnik regeneracji")
+
+user_id = st.text_input("Nazwa użytkownika", value="test_user_1")
+st.write(f"Witaj, **{user_id}**! 👋")
 st.divider()
 
 # Przygotowywanie formularzu wejściowego
@@ -118,3 +125,29 @@ else:
                 st.warning("🟡 **Strefa Żółta (34-66%)**: Średnia regeneracja.")
             else:
                 st.error("🔴 **Strefa Czerwona (0-33%)**: Niska regeneracja.")
+
+st.divider()
+with st.expander("📊 Twoja historia pomiarów", expanded=False):
+    df_history = get_user_history(user_id)
+
+    if df_history.empty:
+        st.info("Brak wpisów w bazie dla tego użytkownika.")
+    else:
+        # Konwersja w przypadku braku dat
+        df_history['date'] = pd.to_datetime(df_history['date'])
+
+        # Filtry dat
+        col_f1, col_f2 = st.columns(2)
+
+        with col_f1:
+            start_date = st.date_input("Data od", value=df_history['date'].min())
+        with col_f2:
+            end_date = st.date_input("Data do", value=df_history['date'].max())
+
+        # Filtrowanie
+        mask = (df_history['date'].dt.date >= start_date) & (df_history['date'].dt.date <= end_date)
+        df_filtred = df_history.loc[mask].copy()
+
+        # Formatowanie daty do wyświetlenia
+        df_filtred['date'] = df_filtred['date'].dt.strftime('%Y-%m-%d')
+        st.dataframe(df_filtred, use_container_width=True)

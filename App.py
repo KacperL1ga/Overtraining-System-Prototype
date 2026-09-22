@@ -77,8 +77,8 @@ if len(df_history) < 3:
                     "user_id": user_id,
                     "skin_temp_deviation": None, "hrv_baseline": None, "rhr_baseline": None,
                     "hrv_deviation": None, "rhr_deviation": None, "sleep_hours": None,
-                    "sleep_efficiency": None, "deep_sleep_hours": None, "rem_sleep_hours": None,
-                    "wake_ups": None, "day_strain": None, "calories_burned": None,
+                    "sleep_efficiency": None, "deep_sleep_hours": None,
+                    "rem_sleep_hours": None, "day_strain": None, "calories_burned": None,
                     "workout_completed": None, "recovery_score": None
                 }
 
@@ -98,6 +98,9 @@ if len(df_history) < 3:
                 st.success("Gotowe! Można teraz odświeżyć stronę aby używać pełnego kalkulatora")
 
 else:
+    st.subheader("🗓️ Wybierz dzień pomiaru")
+    curr_date = st.date_input("Data pomiaru")
+
     # Przygotowywanie formularzu wejściowego
     col1, col2, col3 = st.columns(3)
 
@@ -106,7 +109,6 @@ else:
         st.subheader("🫀 Układ krążenia i fizjologia")
         hrv = st.number_input("Aktualne HRV (ms)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
         rhr = st.number_input("Aktualne RHR (bpm)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
-        respiratory_rate = st.number_input("Częstość oddechów (oddechy/min)", min_value=10, max_value=25, value=15, step=1)
         skin_temp_deviation = st.number_input("Odchylenie temp. ciała (°C)", min_value=-3.0, max_value=5.0, value=0.0, step=0.1)
 
     # Środkowa kolumna przechowująca wartości snu
@@ -116,32 +118,31 @@ else:
         sleep_efficiency = st.slider("Efektywność snu (%)", min_value=50.0, max_value=100.0, value=88.0, step=1.0)
         deep_sleep_hours = st.number_input("Sen głęboki (h)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
         rem_sleep_hours = st.number_input("Sen REM (h)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
-        restorative_sleep_hours = st.number_input("Sen regeneracyjny (h)", min_value=0.0, max_value=5.0, value=3.0, step=0.1)
         prev_sleep_hours = st.number_input("Sen poprzedniej nocy (h)", min_value=0.0, max_value=15.0, value=8.0, step=0.5)
-        wake_ups = st.number_input("Liczba przebudzeń", min_value=0, max_value=15, value=2, step=1)
+
+        restorative_sleep_hours = deep_sleep_hours + rem_sleep_hours
 
     # Prawa kolumna przechowująca wartośći obciążenia i aktywności
     with col3:
         st.subheader("💪 Obciążenia i Aktywność")
         day_strain = st.slider("Obciążenie dnia (Day Strains)", min_value=0.0, max_value=21.0, value=12.0, step=0.1)
-        activity_strain = st.slider("Obciążenie treningowe", min_value=0.0, max_value=21.0, value=8.0, step=0.1)
-        activity_duration_min = st.number_input("Czas aktywności (min)", min_value=0, max_value=300, value=45, step=5)
-        calories_burned = st.number_input("Spalone kalorie (kcal)", min_value=0, max_value=5000, value=1000, step=50)
-        workout_completed = st.selectbox("Czy wykonano trening?", [1,0], format_func=lambda x: 'Tak' if x == 1 else 'Nie')
         prev_day_strain = st.slider("Obciążenie dnia poprzedniego", min_value=0.0, max_value=21.0, value=10.0, step=0.1)
+        prev_activity_strain = st.slider("Obciążenie treningowe", min_value=0.0, max_value=21.0, value=8.0, step=0.1)
+        prev_activity_duration_min = st.number_input("Czas aktywności (min)", min_value=0, max_value=300, value=45, step=5)
+        prev_calories_burned = st.number_input("Spalone kalorie (kcal)", min_value=0, max_value=6000, value=1000, step=50)
+        prev_workout_completed = st.selectbox("Czy wykonano trening?", [1,0], format_func=lambda x: 'Tak' if x == 1 else 'Nie')
 
     # Przygotowanie danych wejściowych
     features_cols = [
         'hrv', 'resting_heart_rate', 'hrv_baseline', 'rhr_baseline',
-        'respiratory_rate', 'skin_temp_deviation', 'hrv_deviation',
-        'rhr_deviation',                                            # Fizjologia i Kardiologia
+        'skin_temp_deviation', 'hrv_deviation', 'rhr_deviation',                                            # Fizjologia i Kardiologia
 
         'sleep_hours', 'sleep_efficiency', 'deep_sleep_hours',
-        'rem_sleep_hours', 'wake_ups', 'prev_sleep_hours',
+        'rem_sleep_hours', 'prev_sleep_hours',
         'restorative_sleep_hours',                                  # Sen
 
-        'day_strain', 'activity_strain', 'activity_duration_min',
-        'calories_burned', 'workout_completed', 'prev_day_strain'  # Obciążenia i aktywność
+        'prev_day_strain', 'prev_activity_strain', 'prev_activity_duration_min',
+        'prev_calories_burned', 'prev_workout_completed'  # Obciążenia i aktywność
     ]
 
     result = calculate_baseline_deviation("test_user_1", hrv, rhr)
@@ -156,7 +157,6 @@ else:
             'resting_heart_rate': rhr,
             'hrv_baseline': hrv_baseline,
             'rhr_baseline': rhr_baseline,
-            'respiratory_rate': respiratory_rate,
             'skin_temp_deviation': skin_temp_deviation,
             'hrv_deviation': hrv_deviation,
             'rhr_deviation': rhr_deviation,
@@ -164,16 +164,17 @@ else:
             'sleep_efficiency': sleep_efficiency,
             'deep_sleep_hours': deep_sleep_hours,
             'rem_sleep_hours': rem_sleep_hours,
-            'wake_ups': wake_ups,
             'prev_sleep_hours': prev_sleep_hours,
             'restorative_sleep_hours': restorative_sleep_hours,
-            'day_strain': day_strain,
-            'activity_strain': activity_strain,
-            'activity_duration_min': activity_duration_min,
-            'calories_burned': calories_burned,
-            'workout_completed': workout_completed,
-            'prev_day_strain': prev_day_strain
+            'prev_day_strain': prev_day_strain,
+            'prev_activity_strain': prev_activity_strain,
+            'prev_activity_duration_min': prev_activity_duration_min,
+            'prev_calories_burned': prev_calories_burned,
+            'prev_workout_completed': prev_workout_completed
         }])[features_cols]
+
+        # Checkbox z zgodą na zapis parametrów do bazy
+        save_do_db = st.checkbox("Chcę zapisać powyższe parametry do historii pomiarów", value=True)
 
         # Przycisk akcji i wyświetlanie wyniku
         if st.button("Wyznacz wskaźnik regeneracji", type="primary", use_container_width=True):
@@ -192,6 +193,37 @@ else:
                     st.warning("🟡 **Strefa Żółta (34-66%)**: Średnia regeneracja.")
                 else:
                     st.error("🔴 **Strefa Czerwona (0-33%)**: Niska regeneracja.")
+
+            if save_do_db:
+                log_data = {
+                    "user_id": user_id,
+                    "date": str(curr_date),
+                    "hrv": hrv,
+                    "resting_heart_rate": rhr,
+                    "skin_temp_deviation": skin_temp_deviation,
+                    "hrv_baseline": hrv_baseline,
+                    "rhr_baseline": rhr_baseline,
+                    "hrv_deviation": hrv_deviation,
+                    "rhr_deviation": rhr_deviation,
+                    "sleep_hours": sleep_hours,
+                    "sleep_efficiency": sleep_efficiency,
+                    "deep_sleep_hours": deep_sleep_hours,
+                    "rem_sleep_hours": rem_sleep_hours,
+                    "day_strain": prev_day_strain,
+                    "calories_burned": prev_calories_burned,
+                    "workout_completed": prev_workout_completed,
+                    "recovery_score": score
+                }
+
+                df_history = get_user_history(user_id)
+                date_exist = str(curr_date) in df_history['date'].astype(str).values
+
+                if date_exist:
+                    st.warning(f"Wpis dla daty {curr_date} już istnieje w bazie!")
+                else:
+                    # Wysłanie danych do bazy
+                    save_daily_logs(log_data)
+                    st.info(f"Zapisano pomiary z dnia {curr_date} w bazie danych.")
 
     st.divider()
     with st.expander("📊 Twoja historia pomiarów", expanded=False):

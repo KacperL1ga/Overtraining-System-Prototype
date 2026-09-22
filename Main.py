@@ -35,7 +35,6 @@ df['prev_sleep_hours'] = df.groupby('user_id')['sleep_hours'].shift(1)
 df['prev_activity_strain'] = df.groupby('user_id')['activity_strain'].shift(1)
 df['prev_calories_burned'] = df.groupby('user_id')['calories_burned'].shift(1)
 df['prev_activity_duration_min'] = df.groupby('user_id')['activity_duration_min'].shift(1)
-df['prev_workout_completed'] = df.groupby('user_id')['workout_completed'].shift(1)
 
 # Czyszczenie wierszy z brakujacymi danymi
 print(f"Liczba wierszy przed czyszczeniem: {len(df)}")
@@ -45,15 +44,14 @@ print(f"Liczba wierszy po czyszczeniu: {len(df_cleaned)}")
 # Wybór istotnych kolumn
 features_cols = [
     'hrv', 'resting_heart_rate', 'hrv_baseline', 'rhr_baseline',
-    'respiratory_rate', 'skin_temp_deviation', 'hrv_deviation',
-    'rhr_deviation', # Fizjologia i Kardiologia
+    'skin_temp_deviation', 'hrv_deviation', 'rhr_deviation', # Fizjologia i Kardiologia
 
     'sleep_hours', 'sleep_efficiency', 'deep_sleep_hours',
-    'rem_sleep_hours', 'wake_ups', 'prev_sleep_hours',
+    'rem_sleep_hours', 'prev_sleep_hours',
     'restorative_sleep_hours',  # Sen
 
     'prev_day_strain', 'prev_activity_strain', 'prev_activity_duration_min',
-    'prev_calories_burned', 'prev_workout_completed'  # Obciążenia i aktywność
+    'prev_calories_burned'  # Obciążenia i aktywność
 ]
 
 print("Przykładowe dane: \n", df_cleaned.head())

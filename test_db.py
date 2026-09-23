@@ -18,8 +18,8 @@ sample_data = {
     "sleep_efficiency": 88.0,
     "deep_sleep_hours": 1.5,
     "rem_sleep_hours": 2.0,
-    "wake_ups": 2,
     "day_strain": 12.4,
+    "activity_strain": 15.0,
     "calories_burned": 2400.0,
     "workout_completed": 1,
     "recovery_score": 78.5

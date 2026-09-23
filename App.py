@@ -78,7 +78,7 @@ if len(df_history) < 3:
                     "skin_temp_deviation": None, "hrv_baseline": None, "rhr_baseline": None,
                     "hrv_deviation": None, "rhr_deviation": None, "sleep_hours": None,
                     "sleep_efficiency": None, "deep_sleep_hours": None,
-                    "rem_sleep_hours": None, "day_strain": None, "calories_burned": None,
+                    "rem_sleep_hours": None, "day_strain": None, "activity_strain": None, "calories_burned": None,
                     "workout_completed": None, "recovery_score": None
                 }
 
@@ -108,41 +108,37 @@ else:
     with col1:
         st.subheader("🫀 Układ krążenia i fizjologia")
         hrv = st.number_input("Aktualne HRV (ms)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
-        rhr = st.number_input("Aktualne RHR (bpm)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
+        rhr = st.number_input("Aktualne RHR (bpm)", min_value=10.0, max_value=250.0, value=60.0, step=1.0)
         skin_temp_deviation = st.number_input("Odchylenie temp. ciała (°C)", min_value=-3.0, max_value=5.0, value=0.0, step=0.1)
 
     # Środkowa kolumna przechowująca wartości snu
     with col2:
         st.subheader("🛏️ Sen i wypoczynek")
-        sleep_hours = st.number_input("Czas snu (h)", min_value=0.0, max_value=15.0, value=8.0, step=0.5)
+        sleep_hours = st.number_input("Czas snu (h)", min_value=0.0, max_value=15.0, value=8.0, step=0.1)
         sleep_efficiency = st.slider("Efektywność snu (%)", min_value=50.0, max_value=100.0, value=88.0, step=1.0)
         deep_sleep_hours = st.number_input("Sen głęboki (h)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
         rem_sleep_hours = st.number_input("Sen REM (h)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
-        prev_sleep_hours = st.number_input("Sen poprzedniej nocy (h)", min_value=0.0, max_value=15.0, value=8.0, step=0.5)
-
-        restorative_sleep_hours = deep_sleep_hours + rem_sleep_hours
 
     # Prawa kolumna przechowująca wartośći obciążenia i aktywności
     with col3:
         st.subheader("💪 Obciążenia i Aktywność")
-        day_strain = st.slider("Obciążenie dnia (Day Strains)", min_value=0.0, max_value=21.0, value=12.0, step=0.1)
-        prev_day_strain = st.slider("Obciążenie dnia poprzedniego", min_value=0.0, max_value=21.0, value=10.0, step=0.1)
-        prev_activity_strain = st.slider("Obciążenie treningowe", min_value=0.0, max_value=21.0, value=8.0, step=0.1)
-        prev_activity_duration_min = st.number_input("Czas aktywności (min)", min_value=0, max_value=300, value=45, step=5)
-        prev_calories_burned = st.number_input("Spalone kalorie (kcal)", min_value=0, max_value=6000, value=1000, step=50)
-        prev_workout_completed = st.selectbox("Czy wykonano trening?", [1,0], format_func=lambda x: 'Tak' if x == 1 else 'Nie')
+        day_strain = st.slider("Obciążenie dnia (Day Strain)", min_value=0.0, max_value=21.0, value=12.0, step=0.1)
+        activity_strain = st.slider("Obciążenie treningowe (Activity Strain)", min_value=0.0, max_value=21.0, value=8.0, step=0.1)
+        calories_burned = st.number_input("Spalone kalorie (kcal)", min_value=0, max_value=6000, value=1000, step=50)
+
+    # Automatyczne wyznaczanie odbytego treningu na podstawie obciążenia treningowego
+    workout_completed = 1 if activity_strain > 0 else 0
 
     # Przygotowanie danych wejściowych
     features_cols = [
         'hrv', 'resting_heart_rate', 'hrv_baseline', 'rhr_baseline',
-        'skin_temp_deviation', 'hrv_deviation', 'rhr_deviation',                                            # Fizjologia i Kardiologia
+        'skin_temp_deviation', 'hrv_deviation', 'rhr_deviation',    # Fizjologia i Kardiologia
 
         'sleep_hours', 'sleep_efficiency', 'deep_sleep_hours',
-        'rem_sleep_hours', 'prev_sleep_hours',
-        'restorative_sleep_hours',                                  # Sen
+        'rem_sleep_hours',                                          # Sen
 
-        'prev_day_strain', 'prev_activity_strain', 'prev_activity_duration_min',
-        'prev_calories_burned', 'prev_workout_completed'  # Obciążenia i aktywność
+        'day_strain', 'activity_strain','calories_burned',
+        'workout_completed'                                         # Obciążenia i aktywność
     ]
 
     result = calculate_baseline_deviation("test_user_1", hrv, rhr)
@@ -164,13 +160,10 @@ else:
             'sleep_efficiency': sleep_efficiency,
             'deep_sleep_hours': deep_sleep_hours,
             'rem_sleep_hours': rem_sleep_hours,
-            'prev_sleep_hours': prev_sleep_hours,
-            'restorative_sleep_hours': restorative_sleep_hours,
-            'prev_day_strain': prev_day_strain,
-            'prev_activity_strain': prev_activity_strain,
-            'prev_activity_duration_min': prev_activity_duration_min,
-            'prev_calories_burned': prev_calories_burned,
-            'prev_workout_completed': prev_workout_completed
+            'day_strain': day_strain,
+            'activity_strain': activity_strain,
+            'calories_burned': calories_burned,
+            'workout_completed': workout_completed
         }])[features_cols]
 
         # Checkbox z zgodą na zapis parametrów do bazy
@@ -209,19 +202,28 @@ else:
                     "sleep_efficiency": sleep_efficiency,
                     "deep_sleep_hours": deep_sleep_hours,
                     "rem_sleep_hours": rem_sleep_hours,
-                    "day_strain": prev_day_strain,
-                    "calories_burned": prev_calories_burned,
-                    "workout_completed": prev_workout_completed,
+                    "day_strain": day_strain,
+                    "activity_strain": activity_strain,
+                    "calories_burned": calories_burned,
+                    "workout_completed": workout_completed,
                     "recovery_score": score
                 }
 
                 df_history = get_user_history(user_id)
                 date_exist = str(curr_date) in df_history['date'].astype(str).values
 
+                # Obszar odpowiadający za nadpisywanie danych w bazie przy tej samej dacie
                 if date_exist:
                     st.warning(f"Wpis dla daty {curr_date} już istnieje w bazie!")
-                else:
-                    # Wysłanie danych do bazy
+                    col_btn1, col_btn2 = st.columns(2)
+                    with col_btn1:                      # Jeśli użytkownik wybierze ten przycisk zaktualizuje dane z wybranego dnia
+                        if st.button("Tak, nadpisz", type="primary", use_container_width=True):
+                            save_daily_logs(log_data)
+                            st.success(f"Pomyślnie zaktualizowano wpis z dnia {curr_date}")
+                    with col_btn2:                      # Jeśli użytkownik wybierze ten przycisk operacja nadpisywania anuluje się
+                        if st.button("Anuluj", use_container_width=True):
+                            st.info("Anulowano zapis. Zmień datę w formluarzu, jeśli chcesz dodać nowy dzień.")
+                else:                                   # Jeśli daty się różnią formularz bez problemu zapisze nowe dane do bazy
                     save_daily_logs(log_data)
                     st.info(f"Zapisano pomiary z dnia {curr_date} w bazie danych.")
 

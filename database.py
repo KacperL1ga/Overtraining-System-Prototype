@@ -31,7 +31,8 @@ def init_db():
             deep_sleep_hours REAL,              -- Sen głęboki (%)
             rem_sleep_hours REAL,               -- Sen REM (%)
             
-            day_strain REAL,                    -- Skala obciążenia (0-21)
+            day_strain REAL,                    -- Skala obciążenia w ciągu dnia (0-21)
+            activity_strain REAL,               -- Skala obciążenia jednostki treningowej (0-21)
             calories_burned REAL,               -- Całkowite spalone kalorie (kcal)
             workout_completed INTEGER,          -- Trening wykonany (1-TAK 0-NIE)
             
@@ -57,14 +58,14 @@ def save_daily_logs(data: dict):
             hrv, resting_heart_rate, skin_temp_deviation,
             hrv_baseline, rhr_baseline, hrv_deviation, rhr_deviation,
             sleep_hours, sleep_efficiency, deep_sleep_hours, rem_sleep_hours,
-            day_strain, calories_burned, workout_completed,
+            day_strain, activity_strain, calories_burned, workout_completed,
             recovery_score
         ) VALUES (
             :user_id, :date,
             :hrv, :resting_heart_rate, :skin_temp_deviation,
             :hrv_baseline, :rhr_baseline, :hrv_deviation, :rhr_deviation,
             :sleep_hours, :sleep_efficiency, :deep_sleep_hours, :rem_sleep_hours,
-            :day_strain, :calories_burned, :workout_completed,
+            :day_strain, :activity_strain, :calories_burned, :workout_completed,
             :recovery_score
         )
     '''

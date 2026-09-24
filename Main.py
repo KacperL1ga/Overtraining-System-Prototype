@@ -10,6 +10,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import accuracy_score, classification_report
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 import shap
 
@@ -26,15 +28,13 @@ df = df.sort_values(by=['user_id', 'date'])
 df['hrv_deviation'] = df['hrv'] - df['hrv_baseline']
 df['rhr_deviation'] = df['resting_heart_rate'] - df['rhr_baseline']
 
-# Łączna długość kluczowych faz snu (Głęboki + REM)
-df['restorative_sleep_hours'] = df['deep_sleep_hours'] + df['rem_sleep_hours']
+# Wyliczenie średnich 7-dniowych dla każdego użytkownika
+df['hrv_7d_mean'] = df.groupby('user_id')['hrv'].transform(lambda x: x.rolling(7, min_periods=1).mean())
+df['rhr_7d_mean'] = df.groupby('user_id')['resting_heart_rate'].transform(lambda x: x.rolling(7, min_periods=1).mean())
+df['sleep_hours_7d_mean'] = df.groupby('user_id')['sleep_hours'].transform(lambda x: x.rolling(7, min_periods=1).mean())
 
-# Cechy opóźnione (wysiłek i sen z poprzedniego dnia)
-df['prev_day_strain'] = df.groupby('user_id')['day_strain'].shift(1)
-df['prev_sleep_hours'] = df.groupby('user_id')['sleep_hours'].shift(1)
-df['prev_activity_strain'] = df.groupby('user_id')['activity_strain'].shift(1)
-df['prev_calories_burned'] = df.groupby('user_id')['calories_burned'].shift(1)
-df['prev_activity_duration_min'] = df.groupby('user_id')['activity_duration_min'].shift(1)
+if 'workout_completed' not in df.columns:
+    df['workout_completed'] = (df['activity_strain'] > 0).astype(int)
 
 # Czyszczenie wierszy z brakujacymi danymi
 print(f"Liczba wierszy przed czyszczeniem: {len(df)}")
@@ -43,15 +43,13 @@ print(f"Liczba wierszy po czyszczeniu: {len(df_cleaned)}")
 
 # Wybór istotnych kolumn
 features_cols = [
-    'hrv', 'resting_heart_rate', 'hrv_baseline', 'rhr_baseline',
+    'hrv', 'hrv_7d_mean', 'resting_heart_rate', 'rhr_7d_mean', 'hrv_baseline', 'rhr_baseline',
     'skin_temp_deviation', 'hrv_deviation', 'rhr_deviation', # Fizjologia i Kardiologia
 
-    'sleep_hours', 'sleep_efficiency', 'deep_sleep_hours',
-    'rem_sleep_hours', 'prev_sleep_hours',
-    'restorative_sleep_hours',  # Sen
+    'sleep_hours', 'sleep_hours_7d_mean', 'sleep_efficiency', 'deep_sleep_hours',
+    'rem_sleep_hours',              # Sen
 
-    'prev_day_strain', 'prev_activity_strain', 'prev_activity_duration_min',
-    'prev_calories_burned'  # Obciążenia i aktywność
+    'day_strain', 'activity_strain', 'calories_burned', 'workout_completed'  # Obciążenia i aktywność
 ]
 
 print("Przykładowe dane: \n", df_cleaned.head())
@@ -75,11 +73,33 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 # Inicjalizacja XGBoost
 xgb = XGBRegressor(
-    n_estimators=500,
-    learning_rate=0.05,
-    random_state=42
+    max_depth= 6,
+    n_estimators= 500,
+    learning_rate= 0.05,
+    random_state= 42
 )
+
 xgb.fit(X_train, y_train)
+
+# param_grid = {
+#     'max_depth': [5, 6, 7],
+#     'learning_rate': [0.01, 0.05, 0.1],
+#     'n_estimators': [100, 300, 500]
+# }
+#
+# grid_search = GridSearchCV(
+#     estimator=XGBRegressor(random_state=42),
+#     param_grid=param_grid,
+#     scoring='r2',
+#     cv=5,
+#     n_jobs=-1
+# )
+# grid_search.fit(X_train, y_train)
+#
+# print(
+#     f"Najlepsze parametry: {grid_search.best_params_} osiągnęły wynik R2: {grid_search.best_score_:.4f}"
+# )
+# Najlepsze parametry: {'learning_rate': 0.05, 'max_depth': 6, 'n_estimators': 500} osiągnęły wynik R2: 0.4485
 
 # Przygotowanie danych pod algorytm Sieci Neuronowych
 scaler = StandardScaler()
@@ -91,14 +111,34 @@ X_test_scaled = scaler.transform(X_test)
 # mlp.fit(X_train_scaled, y_train)
 
 # Predykcje na testowym zbiorze danych
-# prediction = xgb.predict(X_test)
-#
-# r2 = r2_score(y_test, prediction)
-# mea = mean_absolute_error(y_test, prediction)
-# rmse = np.sqrt(mean_squared_error(y_test, prediction))
-# print(f"R2 Score: {r2}")
-# print(f"Mean absolute error: {mea}")
-# print(f"Mean squared error: {rmse}")
+prediction = xgb.predict(X_test)
+
+r2 = r2_score(y_test, prediction)
+mea = mean_absolute_error(y_test, prediction)
+rmse = np.sqrt(mean_squared_error(y_test, prediction))
+print(f"R2 Score: {r2}")
+print(f"Mean absolute error: {mea}")
+print(f"Mean squared error: {rmse}")
+
+def get_zone(score):
+  if score < 34:
+    return "Czerwona 🔴"
+  elif score < 67:
+    return "Żółta 🟡"
+  else:
+    return "Zielona 🟢"
+
+
+# 2. Konwersja wyników rzeczywistych i przewidywanych na strefy
+y_test_zones = [get_zone(s) for s in y_test]
+y_pred_zones = [get_zone(s) for s in prediction]
+
+# 3. Obliczenie ogólnej dokładności
+accuracy = accuracy_score(y_test_zones, y_pred_zones)
+print(f"Dokładność trafiania w strefy: {accuracy * 100:.2f}%")
+
+# 4. (Opcjonalnie) Raport ze szczegółami dla każdej strefy
+print(classification_report(y_test_zones, y_pred_zones))
 
 # Definicja modeli do porównania
 models = {
@@ -120,9 +160,9 @@ results = []
 #
 #     results.append({"Model": name, "R2 Score": r2, "MEA": mea, "RMSE": rmse})
 
-comparison_df = pd.DataFrame(results)
-print("\n---Porównywarka wyników algorytmów---")
-print(comparison_df.to_string(index=False))
+# comparison_df = pd.DataFrame(results)
+# print("\n---Porównywarka wyników algorytmów---")
+# print(comparison_df.to_string(index=False))
 
 # Obliczanie wartości SHAP dla najlepszwgo modelu
 explainer = shap.TreeExplainer(xgb)

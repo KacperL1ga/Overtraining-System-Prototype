@@ -129,15 +129,15 @@ def get_zone(score):
     return "Zielona 🟢"
 
 
-# 2. Konwersja wyników rzeczywistych i przewidywanych na strefy
+# Konwersja wyników rzeczywistych i przewidywanych na strefy
 y_test_zones = [get_zone(s) for s in y_test]
 y_pred_zones = [get_zone(s) for s in prediction]
 
-# 3. Obliczenie ogólnej dokładności
+# Obliczenie ogólnej dokładności
 accuracy = accuracy_score(y_test_zones, y_pred_zones)
 print(f"Dokładność trafiania w strefy: {accuracy * 100:.2f}%")
 
-# 4. (Opcjonalnie) Raport ze szczegółami dla każdej strefy
+# Raport ze szczegółami dla każdej strefy
 print(classification_report(y_test_zones, y_pred_zones))
 
 # Definicja modeli do porównania

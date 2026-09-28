@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import joblib
 
-from analytics import calculate_baseline_deviation
+from analytics import calculate_baseline_deviation, input_features_table
 from database import init_db, get_user_history, delete_daily_log, save_daily_logs
 
 # Inicjalizacja bazy danych
@@ -129,26 +129,14 @@ else:
     # Automatyczne wyznaczanie odbytego treningu na podstawie obciążenia treningowego
     workout_completed = 1 if activity_strain > 0 else 0
 
-    # Przygotowanie danych wejściowych
-    features_cols = [
-        'hrv', 'resting_heart_rate', 'hrv_baseline', 'rhr_baseline',
-        'skin_temp_deviation', 'hrv_deviation', 'rhr_deviation',    # Fizjologia i Kardiologia
-
-        'sleep_hours', 'sleep_efficiency', 'deep_sleep_hours',
-        'rem_sleep_hours',                                          # Sen
-
-        'day_strain', 'activity_strain','calories_burned',
-        'workout_completed'                                         # Obciążenia i aktywność
-    ]
-
-    result = calculate_baseline_deviation("test_user_1", hrv, rhr)
+    result = calculate_baseline_deviation(user_id, hrv, rhr)
 
     if result is None:
         st.info("Wskaźnik regeneracji wymaga co najmniej 3 dni pomiarów.")
     else:
         hrv_deviation, rhr_deviation, hrv_baseline, rhr_baseline = result
 
-        input_data = pd.DataFrame([{
+        current_data = {
             'hrv': hrv,
             'resting_heart_rate': rhr,
             'hrv_baseline': hrv_baseline,
@@ -164,10 +152,13 @@ else:
             'activity_strain': activity_strain,
             'calories_burned': calories_burned,
             'workout_completed': workout_completed
-        }])[features_cols]
+        }
 
         # Checkbox z zgodą na zapis parametrów do bazy
         save_do_db = st.checkbox("Chcę zapisać powyższe parametry do historii pomiarów", value=True)
+
+        # Funkcja dodająca 3 parametry średnich i przygotowująca Tabele do precykcji w modelu
+        input_data = input_features_table(user_id, current_data)
 
         # Przycisk akcji i wyświetlanie wyniku
         if st.button("Wyznacz wskaźnik regeneracji", type="primary", use_container_width=True):

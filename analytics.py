@@ -1,3 +1,5 @@
+import pandas as pd
+
 from database import get_user_history
 
 def calculate_baseline_deviation(user_id: str, curr_hrv: float, curr_rhr: float):
@@ -8,7 +10,7 @@ def calculate_baseline_deviation(user_id: str, curr_hrv: float, curr_rhr: float)
     if len(df_history) < 3:                                     # W przypadku zbyt małej ilości danych funkcja nic nie zwraca
         return None
 
-    if len(df_history) < 30:                                    # Po 3 dnia obliczane ją odchylenia od baseline z poprzednich dni
+    if len(df_history) < 30:                                    # Po 3 dniach obliczane są odchylenia od baseline z poprzednich dni
         hrv_baseline = df_history['hrv'].mean()
         rhr_baseline = df_history['resting_heart_rate'].mean()
     else:
@@ -21,3 +23,44 @@ def calculate_baseline_deviation(user_id: str, curr_hrv: float, curr_rhr: float)
 
     # Zwracamy odchylenia do dalszych obliczeń oraz baseline do zapisu w bazie
     return hrv_deviation, rhr_deviation, hrv_baseline, rhr_baseline
+
+def input_features_table(user_id: str, current_data: dict):
+    # Pobieranie historii danego użytkownika z bazy danych
+
+    df_history = get_user_history(user_id)
+    df_current = pd.DataFrame([current_data])
+
+    # Połącznie danych historycznych z dzisiejszymi
+    if not df_history.empty:
+        df_combined = pd.concat([df_history, df_current], ignore_index=True)
+    else:
+        df_combined = df_current
+
+    # Obliczanie średnich z ostatniego tygodnia
+    recent_7 = df_combined.tail(7)
+    hrv_7d_mean = recent_7['hrv'].mean()
+    rhr_7d_mean = recent_7['resting_heart_rate'].mean()
+    sleep_hours_7d_mean = recent_7['sleep_hours'].mean()
+
+    # Wektor 18 cech przeznaczony do trenowania w modelu
+    feature_dict = {
+        'hrv': current_data['hrv'],
+        'hrv_7d_mean': hrv_7d_mean,
+        'resting_heart_rate': current_data['resting_heart_rate'],
+        'rhr_7d_mean': rhr_7d_mean,
+        'hrv_baseline': current_data['hrv_baseline'],
+        'rhr_baseline': current_data['rhr_baseline'],
+        'skin_temp_deviation': current_data['skin_temp_deviation'],
+        'hrv_deviation': current_data['hrv_deviation'],
+        'rhr_deviation': current_data['rhr_deviation'],
+        'sleep_hours': current_data['sleep_hours'],
+        'sleep_hours_7d_mean': sleep_hours_7d_mean,
+        'sleep_efficiency': current_data['sleep_efficiency'],
+        'deep_sleep_hours': current_data['deep_sleep_hours'],
+        'rem_sleep_hours': current_data['rem_sleep_hours'],
+        'day_strain': current_data['day_strain'],
+        'activity_strain': current_data['activity_strain'],
+        'calories_burned': current_data['calories_burned'],
+        'workout_completed': current_data['workout_completed'],
+    }
+    return pd.DataFrame([feature_dict])

@@ -1,3 +1,4 @@
+import time
 from cProfile import label
 
 import streamlit as st
@@ -103,8 +104,27 @@ def show_edit_dialog(user_id: str, action_date):
             value = f"{new_score:.2f}%",
             delta = f"{new_score - old_score:+.2f}% względem poprzedniego"
         )
-        if st.button("Zamknij"):
-           st.rerun()          # Zamykając okno dialogowe odświeżamy całą stronę plus bazę danych
+
+        time.sleep(2) # Po 3 sekundach następuje przeładowanie strony
+        st.rerun()
+
+@st.dialog("⚠️ Potwierdzenie usunięcia")
+def show_del_dialog(user_id: str, action_date):
+    st.warning(f"Czy na pewno chcesz bezpowrotnie usunąć pomiary z dnia **{action_date}**?")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("Tak, usuń", type="primary", use_container_width=True):
+            delete_daily_log(user_id, str(action_date))
+            st.success("Wpis został usunięty!")
+            time.sleep(1)
+            st.rerun()
+
+    with col2:
+        if st.button("Anuluj", use_container_width=True):
+            st.rerun()
+
 
 
 # Tytuł strony i struktura kolumnowa
@@ -321,15 +341,14 @@ else:
             st.dataframe(df_filtred, use_container_width=True)
 
             # Sekcja modtfikacji danych
-            st.markdown("**Modyfikacja wabranego wpisu**")
+            st.markdown("**🛠️ Modyfikacja wabranego wpisu**")
             action_date = st.date_input("Wybierz datę do edycji lub usunięcia", key="action_date")
 
             col_del, col_edit = st.columns(2)
 
             with col_del:
                 if st.button("🗑️ Usuń wpis", use_container_width=True):
-                    delete_daily_log(user_id, str(action_date))
-                    st.success(f"Usunięto wpis z dnia {action_date}.")
+                    show_del_dialog(user_id, action_date)
 
             with col_edit:
                 if st.button("✏️️ Edytuj wpis", type="primary", use_container_width=True):

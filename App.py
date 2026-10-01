@@ -1,3 +1,5 @@
+from cProfile import label
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -22,6 +24,88 @@ def load_model():
     return joblib.load('xgb_model.pkl')
 
 model = load_model()
+
+# Funckja konwertująca wartości na float
+def floatt(val, default=0.0):
+    try:
+        return float(val) if pd.notnull(val) else default
+    except (ValueError, TypeError):
+        return default
+
+# Funkcja przedstawiająca formularz do edycji wpisów w bazie danych
+@st.dialog("✏️ Edycja pomiarów")
+def show_edit_dialog(user_id: str, action_date):
+    date_str = str(action_date)
+    df_history = get_user_history(user_id)
+
+    # Wczytanie wiersza dla wyznaczonej daty
+    df_entry = df_history[df_history['date'].astype(str) == date_str]
+    if df_entry.empty:
+        st.warning(f"Brak wpisów w bazie danych dla daty {date_str}.")
+        return
+
+    # W przypadku braku danych uzupełniamy je wartością 0.0
+    row = df_entry.fillna(0.0).iloc[0]
+    old_score = floatt(row.get('recovery_score', 0.0))      # Pobranie starego recovery score do późniejszego porównania
+
+    st.write(f"Modyfikuj wpis z dnia: **{date_str}**")
+
+    with st.form("edit_dialog_form"):           # Formularz z wartościami bazowymi pobranymi z bazy danych
+        col1, col2,col3 = st.columns(3)
+        with col1:
+            st.subheader("🫀 Układ krążenia i fizjologia")
+            hrv = st.number_input("HRV (ms)", min_value=10.0, max_value=250.0, value=floatt(row['hrv'], 75.0), step=1.0)
+            rhr = st.number_input("RHR (bpm)", min_value=10.0, max_value=250.0, value=floatt(row['resting_heart_rate'], 60.0), step=1.0)
+            skin_temp_deviation = st.number_input("Odchylenie temp. ciała (°C)", min_value=-3.0, max_value=5.0,value=floatt(row['skin_temp_deviation'] ,0.0), step=0.1)
+
+        # Środkowa kolumna przechowująca wartości snu
+        with col2:
+            st.subheader("🛏️ Sen i wypoczynek")
+            sleep_hours = st.number_input("Czas snu (h)", min_value=0.0, max_value=15.0, value=floatt(row['sleep_hours'], 8.0), step=0.1)
+            sleep_efficiency = st.slider("Efektywność snu (%)", min_value=50.0, max_value=100.0, value=floatt(row['sleep_efficiency'], 88.0), step=1.0)
+            deep_sleep_hours = st.number_input("Sen głęboki (h)", min_value=0.0, max_value=5.0, value=floatt(row['deep_sleep_hours'], 1.5), step=0.1)
+            rem_sleep_hours = st.number_input("Sen REM (h)", min_value=0.0, max_value=5.0, value=floatt(row['rem_sleep_hours'], 1.5), step=0.1)
+
+        # Prawa kolumna przechowująca wartośći obciążenia i aktywności
+        with col3:
+            st.subheader("💪 Obciążenia i Aktywność")
+            day_strain = st.slider("Obciążenie dnia (Day Strain)", min_value=0.0, max_value=21.0, value=floatt(row['day_strain'], 12.0), step=0.1)
+            activity_strain = st.slider("Obciążenie treningowe (Activity Strain)", min_value=0.0, max_value=21.0,value=floatt(row['activity_strain'], 8.0), step=0.1)
+            calories_burned = st.number_input("Spalone kalorie (kcal)", min_value=0, max_value=6000, value=int(row['calories_burned']), step=50)
+
+        submitted = st.form_submit_button("Zapisz zmiany i przelicz ponownie", type="primary")
+
+    if submitted:       # Po zatwierdzeniu zmiany przestępujemy do ponownego wylicznenia recovery score
+        workout_completed = 1 if activity_strain > 0.0 else 0
+        res = calculate_baseline_deviation(user_id, hrv, rhr)       # Ponowne obliczanie odchyleń i baseline'ów
+        hrv_deviation, rhr_deviation, hrv_baseline, rhr_baseline = res if res else (0.0, 0.0, hrv, rhr)
+
+        current_data = {
+            'hrv': hrv, 'resting_heart_rate': rhr, 'hrv_baseline': hrv_baseline, 'rhr_baseline': rhr_baseline,
+            'skin_temp_deviation': skin_temp_deviation, 'hrv_deviation': hrv_deviation, 'rhr_deviation': rhr_deviation,
+            'sleep_hours': sleep_hours, 'sleep_efficiency': sleep_efficiency, 'deep_sleep_hours': deep_sleep_hours,
+            'rem_sleep_hours': rem_sleep_hours, 'day_strain': day_strain, 'activity_strain': activity_strain,
+            'calories_burned': calories_burned, 'workout_completed': workout_completed
+        }
+
+        input_data  = input_features_table(user_id, current_data)       # Tworzenie DataFrame do predykcji i zapisu w bazie danych
+        new_score = floatt(np.clip(model.predict(input_data)[0], 0.0, 100.0))   # Uzycie modelu to predykcji nowego recovery_score
+
+        log_data = current_data.copy()
+        log_data.update({"user_id": user_id, "date": date_str, "recovery_score": new_score})    # Uzupełniene DataFrame o brakujące dane
+
+        save_daily_logs(log_data)           # Zapis pomiarów do bazy danych
+
+        # Przy pomyślnym zapisie dostaniemy komunikat z informacją o różnicy w recovery_score
+        st.success("Pomyślnie zaktualizowano dane!")
+        st.metric(
+            label = "Zaktualizowany Recovery Score",
+            value = f"{new_score:.2f}%",
+            delta = f"{new_score - old_score:+.2f}% względem poprzedniego"
+        )
+        if st.button("Zamknij"):
+           st.rerun()          # Zamykając okno dialogowe odświeżamy całą stronę plus bazę danych
+
 
 # Tytuł strony i struktura kolumnowa
 st.title("Kalkulator Regeneracji Organizmu i Niwelowania Przetrenowania")
@@ -168,7 +252,7 @@ else:
             col_res1, col_res2 = st.columns([1,2])
 
             with col_res1:
-                st.metric(label="Przewidywany Recovery Score", value=f"{score:.1f}%")
+                st.metric(label="Przewidywany Recovery Score", value=f"{score:.2f}%")
 
             with col_res2:
                 if score >= 67:
@@ -206,14 +290,6 @@ else:
                 # Obszar odpowiadający za nadpisywanie danych w bazie przy tej samej dacie
                 if date_exist:
                     st.warning(f"Wpis dla daty {curr_date} już istnieje w bazie!")
-                    col_btn1, col_btn2 = st.columns(2)
-                    with col_btn1:                      # Jeśli użytkownik wybierze ten przycisk zaktualizuje dane z wybranego dnia
-                        if st.button("Tak, nadpisz", type="primary", use_container_width=True):
-                            save_daily_logs(log_data)
-                            st.success(f"Pomyślnie zaktualizowano wpis z dnia {curr_date}")
-                    with col_btn2:                      # Jeśli użytkownik wybierze ten przycisk operacja nadpisywania anuluje się
-                        if st.button("Anuluj", use_container_width=True):
-                            st.info("Anulowano zapis. Zmień datę w formluarzu, jeśli chcesz dodać nowy dzień.")
                 else:                                   # Jeśli daty się różnią formularz bez problemu zapisze nowe dane do bazy
                     save_daily_logs(log_data)
                     st.info(f"Zapisano pomiary z dnia {curr_date} w bazie danych.")
@@ -244,9 +320,17 @@ else:
             df_filtred['date'] = df_filtred['date'].dt.strftime('%Y-%m-%d')
             st.dataframe(df_filtred, use_container_width=True)
 
-            # Sekcja usuwania danych
-            st.markdown("🗑️ Usuwanie wybranych wpisów")
-            del_date = st.date_input("Wybierz datę do usunięcia wpisu", key="del_date")
-            if st.button("Usuń wpis", type="secondary"):
-                delete_daily_log(user_id, str(del_date))
-                st.success(f"Usunięto wpis z dnia {del_date}. Odśwież stronę, aby zobaczyć zmiany.")
+            # Sekcja modtfikacji danych
+            st.markdown("**Modyfikacja wabranego wpisu**")
+            action_date = st.date_input("Wybierz datę do edycji lub usunięcia", key="action_date")
+
+            col_del, col_edit = st.columns(2)
+
+            with col_del:
+                if st.button("🗑️ Usuń wpis", use_container_width=True):
+                    delete_daily_log(user_id, str(action_date))
+                    st.success(f"Usunięto wpis z dnia {action_date}.")
+
+            with col_edit:
+                if st.button("✏️️ Edytuj wpis", type="primary", use_container_width=True):
+                    show_edit_dialog(user_id, action_date)

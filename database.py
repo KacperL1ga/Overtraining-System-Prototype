@@ -90,7 +90,7 @@ def delete_daily_log(user_id: str, date_str: str):
     cursor = conn.cursor()
     
     sql = "DELETE FROM daily_logs WHERE user_id = ? AND date = ?"
+
     cursor.execute(sql, (user_id, date_str))
-    
     conn.commit()
     conn.close()

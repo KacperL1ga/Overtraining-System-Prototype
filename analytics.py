@@ -71,3 +71,33 @@ def input_features_table(user_id: str, current_data: dict):
         'workout_completed': current_data['workout_completed'],
     }
     return pd.DataFrame([feature_dict])
+
+# Funkcja służąca obliczaniu stosunku ACWR
+def calculate_acwr(user_id: str, curr_day_strain: float) -> float:
+    df_history = get_user_history(user_id)
+
+    # Pobranie historii z walidacją brakujących wierszy
+    if not df_history.empty and 'day_strain' in df_history.columns:
+        past_strain = df_history['day_strain'].dropna().tolist()
+    else:
+        past_strain = []
+
+    # Dołącznie aktualnego day_strain do zestawienia
+    past_strain.append(curr_day_strain)
+    all_strain = pd.Series(past_strain)
+
+    acute_strain = all_strain.tail(7).mean()            # Obciążenie ostre - srednia z 7 dni
+    chronic_strain = all_strain.tail(28).mean()         # Obciążenie przewlekłe - srednia z 28 dni
+
+    acwr = acute_strain / chronic_strain if chronic_strain > 0 else 1.0
+    return round(acwr, 2)       # Wynik zaokrąglamy do 2 miejsc po przecinku
+
+def interpret_acwr(acwr_value: float):
+    if acwr_value < 0.8:
+        return "Zbyt mało treningów", "info", "🔵"
+    elif acwr_value <= 1.3:
+        return "Obtymalne obciążenie", "success", "🟢"
+    elif acwr_value <= 1.5:
+        return "Ostrzeżenie (wysokie obciążenie)", "warning", "🟡"
+    else:
+        return "Wysokie ryzyko przetrenowania!", "error", "🔴"

@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import joblib
 
-from analytics import calculate_baseline_deviation, input_features_table
+from analytics import calculate_baseline_deviation, input_features_table, calculate_acwr, interpret_acwr
 from database import init_db, get_user_history, delete_daily_log, save_daily_logs
 from dialogs import show_delete_dialog, show_edit_dialog
 
@@ -169,18 +169,34 @@ else:
             prediction = model.predict(input_data)[0]
             score = float(np.clip(prediction, 0.0, 100.0))
 
-            col_res1, col_res2 = st.columns([1,2])
+            acwr_value = calculate_acwr(user_id, day_strain)
+            status_text, status_type, status_emoji = interpret_acwr(acwr_value)
+
+            col_res1, col_res2, col_res3 = st.columns([1,1,1.2])
 
             with col_res1:
                 st.metric(label="Przewidywany Recovery Score", value=f"{score:.2f}%")
+                if score >= 67:
+                    st.success("🟢 **Strefa Zielona (67-100%)**")
+                elif score >= 34:
+                    st.warning("🟡 **Strefa Żółta (34-66%)**")
+                else:
+                    st.error("🔴 **Strefa Czerwona (0-33%)**")
 
             with col_res2:
-                if score >= 67:
-                    st.success("🟢 **Strefa Zielona (67-100%)**: Wysoka gotowość organizmu.")
-                elif score >= 34:
-                    st.warning("🟡 **Strefa Żółta (34-66%)**: Średnia regeneracja.")
+                st.metric(label="Wskaźnik ACWR (7d / 28d)", value=f"{acwr_value}")
+                st.caption("Stosunek obciążenia ostrego do przewlekłego")
+
+            with col_res3:
+                st.markdown("**Ocena ryzyka przetrenowania**")
+                if status_type == "info":
+                    st.info(f"{status_emoji} {status_text}")
+                elif status_type == "success":
+                    st.success(f"{status_emoji} {status_text}")
+                elif status_type == "warning":
+                    st.warning(f"{status_emoji} {status_text}")
                 else:
-                    st.error("🔴 **Strefa Czerwona (0-33%)**: Niska regeneracja.")
+                    st.error(f"{status_emoji} {status_text}")
 
             if save_do_db:
                 log_data = {

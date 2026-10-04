@@ -14,7 +14,7 @@ def floatt(val, default=0.0):
         return default
 
 # Funkcja przedstawiająca formularz do edycji wpisów w bazie danych
-@st.dialog("✏️ Edycja pomiarów")
+@st.dialog("✏️ Edycja pomiarów", width="large")
 def show_edit_dialog(user_id: str, action_date, model):
     date_str = str(action_date)
     df_history = get_user_history(user_id)

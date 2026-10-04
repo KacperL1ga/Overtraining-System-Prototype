@@ -165,70 +165,72 @@ else:
         input_data = input_features_table(user_id, current_data)
 
         # Przycisk akcji i wyświetlanie wyniku
-        if st.button("Wyznacz wskaźnik regeneracji", type="primary", use_container_width=True):
-            prediction = model.predict(input_data)[0]
-            score = float(np.clip(prediction, 0.0, 100.0))
+        if st.button("Wyznacz wskaźnik regeneracji", type="primary", width="stretch"):
 
-            acwr_value = calculate_acwr(user_id, day_strain)
-            status_text, status_type, status_emoji = interpret_acwr(acwr_value)
-
-            col_res1, col_res2, col_res3 = st.columns([1,1,1.2])
-
-            with col_res1:
-                st.metric(label="Przewidywany Recovery Score", value=f"{score:.2f}%")
-                if score >= 67:
-                    st.success("🟢 **Strefa Zielona (67-100%)**")
-                elif score >= 34:
-                    st.warning("🟡 **Strefa Żółta (34-66%)**")
-                else:
-                    st.error("🔴 **Strefa Czerwona (0-33%)**")
-
-            with col_res2:
-                st.metric(label="Wskaźnik ACWR (7d / 28d)", value=f"{acwr_value}")
-                st.caption("Stosunek obciążenia ostrego do przewlekłego")
-
-            with col_res3:
-                st.markdown("**Ocena ryzyka przetrenowania**")
-                if status_type == "info":
-                    st.info(f"{status_emoji} {status_text}")
-                elif status_type == "success":
-                    st.success(f"{status_emoji} {status_text}")
-                elif status_type == "warning":
-                    st.warning(f"{status_emoji} {status_text}")
-                else:
-                    st.error(f"{status_emoji} {status_text}")
-
-            if save_do_db:
-                log_data = {
-                    "user_id": user_id,
-                    "date": str(curr_date),
-                    "hrv": hrv,
-                    "resting_heart_rate": rhr,
-                    "skin_temp_deviation": skin_temp_deviation,
-                    "hrv_baseline": hrv_baseline,
-                    "rhr_baseline": rhr_baseline,
-                    "hrv_deviation": hrv_deviation,
-                    "rhr_deviation": rhr_deviation,
-                    "sleep_hours": sleep_hours,
-                    "sleep_efficiency": sleep_efficiency,
-                    "deep_sleep_hours": deep_sleep_hours,
-                    "rem_sleep_hours": rem_sleep_hours,
-                    "day_strain": day_strain,
-                    "activity_strain": activity_strain,
-                    "calories_burned": calories_burned,
-                    "workout_completed": workout_completed,
-                    "recovery_score": score
-                }
-
-                df_history = get_user_history(user_id)
+            # Walidacja wprowadzanych danych aby uniknąć wpisów z tą sama data
+            df_history = get_user_history(user_id)
+            date_exist = False
+            if not df_history.empty and 'date' in df_history.columns:
                 date_exist = str(curr_date) in df_history['date'].astype(str).values
 
-                # Obszar odpowiadający za nadpisywanie danych w bazie przy tej samej dacie
-                if date_exist:
-                    st.warning(f"Wpis dla daty {curr_date} już istnieje w bazie!")
-                else:                                   # Jeśli daty się różnią formularz bez problemu zapisze nowe dane do bazy
+            if date_exist and save_do_db:
+                st.warning(f"Wpis dla daty **{curr_date}** już istnieje w bazie danych! Aby go zmodyfikować skorzystaj z modyfikacji w sekcji historii pomiarów")
+            else:
+                prediction = model.predict(input_data)[0]
+                score = float(np.clip(prediction, 0.0, 100.0))
+
+                if save_do_db:
+                    log_data = {
+                        "user_id": user_id,
+                        "date": str(curr_date),
+                        "hrv": hrv,
+                        "resting_heart_rate": rhr,
+                        "skin_temp_deviation": skin_temp_deviation,
+                        "hrv_baseline": hrv_baseline,
+                        "rhr_baseline": rhr_baseline,
+                        "hrv_deviation": hrv_deviation,
+                        "rhr_deviation": rhr_deviation,
+                        "sleep_hours": sleep_hours,
+                        "sleep_efficiency": sleep_efficiency,
+                        "deep_sleep_hours": deep_sleep_hours,
+                        "rem_sleep_hours": rem_sleep_hours,
+                        "day_strain": day_strain,
+                        "activity_strain": activity_strain,
+                        "calories_burned": calories_burned,
+                        "workout_completed": workout_completed,
+                        "recovery_score": score
+                    }
                     save_daily_logs(log_data)
                     st.info(f"Zapisano pomiary z dnia {curr_date} w bazie danych.")
+
+                acwr_value = calculate_acwr(user_id, day_strain)
+                status_text, status_type, status_emoji = interpret_acwr(acwr_value)
+
+                col_res1, col_res2, col_res3 = st.columns([1,1,1.2])
+
+                with col_res1:
+                    st.metric(label="Przewidywany Recovery Score", value=f"{score:.2f}%")
+                    if score >= 67:
+                        st.success("🟢 **Strefa Zielona (67-100%)**")
+                    elif score >= 34:
+                        st.warning("🟡 **Strefa Żółta (34-66%)**")
+                    else:
+                        st.error("🔴 **Strefa Czerwona (0-33%)**")
+
+                with col_res2:
+                    st.metric(label="Wskaźnik ACWR (7d / 28d)", value=f"{acwr_value}")
+                    st.caption("Stosunek obciążenia ostrego do przewlekłego")
+
+                with col_res3:
+                    st.markdown("**Ocena ryzyka przetrenowania**")
+                    if status_type == "info":
+                        st.info(f"{status_emoji} {status_text}")
+                    elif status_type == "success":
+                        st.success(f"{status_emoji} {status_text}")
+                    elif status_type == "warning":
+                        st.warning(f"{status_emoji} {status_text}")
+                    else:
+                        st.error(f"{status_emoji} {status_text}")
 
     st.divider()
     with st.expander("📊 Twoja historia pomiarów", expanded=False):
@@ -254,7 +256,7 @@ else:
 
             # Formatowanie daty do wyświetlenia
             df_filtred['date'] = df_filtred['date'].dt.strftime('%Y-%m-%d')
-            st.dataframe(df_filtred, use_container_width=True)
+            st.dataframe(df_filtred, width="stretch")
 
             # Sekcja modtfikacji danych
             st.markdown("**🛠️ Modyfikacja wabranego wpisu**")
@@ -263,9 +265,9 @@ else:
             col_del, col_edit = st.columns(2)
 
             with col_del:
-                if st.button("🗑️ Usuń wpis", use_container_width=True):
+                if st.button("🗑️ Usuń wpis", width="stretch"):
                     show_delete_dialog(user_id, action_date)
 
             with col_edit:
-                if st.button("✏️️ Edytuj wpis", type="primary", use_container_width=True):
+                if st.button("✏️️ Edytuj wpis", type="primary", width="stretch"):
                     show_edit_dialog(user_id, action_date, model)

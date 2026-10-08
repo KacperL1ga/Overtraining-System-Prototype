@@ -1,14 +1,13 @@
-import time
-from cProfile import label
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
 
 from analytics import calculate_baseline_deviation, input_features_table, calculate_acwr, interpret_acwr
-from database import init_db, get_user_history, delete_daily_log, save_daily_logs
+from database import init_db, get_user_history, save_daily_logs
 from dialogs import show_delete_dialog, show_edit_dialog
+from charts import render_charts_section
+from charts2 import chart_physiology
 
 # Inicjalizacja bazy danych
 init_db()
@@ -271,3 +270,6 @@ else:
             with col_edit:
                 if st.button("✏️️ Edytuj wpis", type="primary", width="stretch"):
                     show_edit_dialog(user_id, action_date, model)
+    st.divider()
+    # render_charts_section(user_id, get_user_history(user_id))
+    chart_physiology(df_history)

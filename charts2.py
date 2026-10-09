@@ -22,7 +22,7 @@ def chart_physiology(df: pd.DataFrame):
             x = df['date'],             # oś pozioma - data
             y = df['hrv'],              # oś pionowa - wartości HRV
             mode = 'lines + markers',   # 'lines' - linie | 'markers' - punkty
-            name = 'HRV',               # etykieta w legendzie
+            name = 'HRV (ms)',               # etykieta w legendzie
             line = dict(
                 color="#1f77b4",        # Kolor lini (błękitny)
                 width=2                 # Grubość lini
@@ -35,7 +35,7 @@ def chart_physiology(df: pd.DataFrame):
             x = df['date'],             # oś pozioma - data
             y = df['hrv_baseline'],     # oś pionowa - wartość HRV baseline
             mode = 'lines',             # 'lines' sama linia poglądowa
-            name = 'HRV Baseline',      # etykieta w legendzie
+            name = 'HRV Baseline (ms)',      # etykieta w legendzie
             line = dict(
                 color="#ff7f0e",        # Kolor lini (pomarańczowy)
                 dash="dash"             # dash tworzy linie przerywaną
@@ -58,7 +58,7 @@ def chart_physiology(df: pd.DataFrame):
         go.Scatter(
             x = df['date'],                 # oś pozioma - data
             y = df['resting_heart_rate'],   # oś pionowa - wartości RHR
-            name = "RHR",                   # etykieta w legendzie
+            name = "RHR (bpm)",                   # etykieta w legendzie
             mode = 'lines + markers',       # 'lines' - linie | 'markers' - punkty
             line = dict(
                 color="#e74c3c",            # Kolor lini (czerwony)
@@ -72,7 +72,7 @@ def chart_physiology(df: pd.DataFrame):
             x = df['date'],                 # oś pozioma - data
             y = df['rhr_baseline'],         # oś pionowa - wartość RHR baseline
             mode = 'lines',                 # 'lines' sama linia poglądowa
-            name = "RHR Baseline",          # etykieta w legendzie
+            name = "RHR Baseline (bpm)",          # etykieta w legendzie
             line = dict(
                 color="#1f77b4",            # Kolor lini (błękitny)
                 dash='dash'                 # dash - linia przerywana
@@ -83,7 +83,7 @@ def chart_physiology(df: pd.DataFrame):
     fig_RHR.update_layout(
         title = "RHR vs Baseline w czasie",     # Tytuł wykresu
         xaxis_title = "Data",                   # Nazwa lini pionowej
-        yaxis_title = "RHR (ms)",               # Nazwa lini poziomej
+        yaxis_title = "RHR (bpm)",               # Nazwa lini poziomej
         hovermode = "x unified",                # Pokazuje wartość obu lini po najechaniu
     )
 
@@ -174,3 +174,71 @@ def  chart_sleep_stacked(df: pd.DataFrame):
     )
 
     st.plotly_chart(fig, width = 'stretch')
+
+def chart_strain_group (df: pd.DataFrame):
+    # Jeżeli w tabeli nie ma danych zwracam odpowiedni komunikat
+    if df.empty:
+        st.info("Brak danych.")
+        return
+
+    df = df.sort_values('date')  # Sortujemy dane z bazy chronologicznie po dacie
+
+    # Tworzymy pustą kartkę
+    fig = go.Figure()
+
+    # Tworzymy część słupka odpowiedzialną za Obciążenie Dnia
+    fig.add_trace(
+        go.Bar(
+            x = df['date'],                   # oś pozioma - data
+            y = df['day_strain'],             # oś pionowa - obciążenie dnia
+            name = "Obciążenie Dnia",              # etykieta w legendzie
+            marker_color = "#eb9b54",         # kolor słupka (jasny pomarańczowy)
+            yaxis = "y1",                     # Przypisanie wartości do lewej osi y
+        )
+    )
+
+    # Tworzymy część słupka odpowiedzialną za Obciążenie Treningu
+    fig.add_trace(
+        go.Bar(
+            x = df['date'],                 # oś pozioma - data
+            y = df['activity_strain'],      # oś pionowa - ilosc godziny snu lekkiego
+            name = "Obciążenie Treningowe",       # etykieta w legendzie
+            marker_color="#d35400",         # kolor słupka (ciemny pomarańcz)
+            yaxis="y1",                     # Przypisanie wartości do lewej osi y
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df['date'],                   # oś pozioma - data
+            y=df['recovery_score'],         # oś pionowa - wartości jakości snu
+            mode='lines + markers',         # lines - linie | markers - punkty
+            name="Wartość regeneracji (%)", # etykieta w legendzie
+            line=dict(
+                color="#2ecc71",            # Kolor lini (zielony)
+                width=3                     # Grubość lini
+            ),
+            yaxis="y2",                     # Przypisujemy wartości do prawej strony
+        )
+    )
+
+    # Konfiguracja widoku
+    fig.update_layout(
+        title="Analiza wysiłku vs Regeneracja",     # Tytuł wykresu
+        xaxis_title="Data",                         # Nazwa osi poziomej
+        barmode="group",                            # group - stawia słupki obok siebie
+        yaxis=dict(
+            title="Obciążenie (0-21)",              # Nazwa lewej osi pionowej
+            side="left",                            # Ustawienie po lewej stronie wykresu
+            range = [0, 21],                        # Na sztyno ustawione limity
+        ),
+        yaxis2=dict(
+            title="Wskaźnik regeneracji (%)",       # Nazwa prawej osi pionowej
+            side="right",                           # Ustawienie po prawej stronie wykresu
+            overlaying="y",                         # Nałożenie osi na ten sam wykres
+            range=[0, 100],                         # Sztywny zakres 0 - 100
+        ),
+        hovermode="x unified"                       # Pokazuje wszystkie wartość po najechaniu na date
+    )
+
+    st.plotly_chart(fig, width='stretch')

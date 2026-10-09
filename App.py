@@ -7,7 +7,7 @@ from analytics import calculate_baseline_deviation, input_features_table, calcul
 from database import init_db, get_user_history, save_daily_logs
 from dialogs import show_delete_dialog, show_edit_dialog
 from charts import render_charts_section
-from charts2 import chart_physiology
+from charts2 import chart_physiology,chart_sleep_stacked
 
 # Inicjalizacja bazy danych
 init_db()
@@ -272,4 +272,5 @@ else:
                     show_edit_dialog(user_id, action_date, model)
     st.divider()
     # render_charts_section(user_id, get_user_history(user_id))
-    chart_physiology(df_history)
+    # chart_physiology(df_history)
+    chart_sleep_stacked(df_history)

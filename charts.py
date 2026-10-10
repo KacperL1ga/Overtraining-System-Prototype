@@ -300,6 +300,8 @@ def chart_strain_group (df: pd.DataFrame):
 
     st.plotly_chart(fig, width='stretch')
 
+# TO DO Wykonanie wykresu dla ACWR
+
 def charts_tab_section(df_history: pd.DataFrame):
     st.subheader("📈 Analiza trendów")
 

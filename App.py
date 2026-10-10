@@ -273,3 +273,5 @@ else:
 
     # Sekcja generująca wykresy z filtracją
     charts_tab_section(df_history)
+
+# TO DO Analiza SHAP

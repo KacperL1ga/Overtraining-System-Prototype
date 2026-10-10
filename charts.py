@@ -1,42 +1,31 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 from datetime import date, timedelta
 
 
-# ─────────────────────────────────────────────
-# SEKCJA 1: FILTROWANIE DANYCH WG DATY
-# ─────────────────────────────────────────────
-
-def apply_date_filter(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Wyświetla przyciski filtrowania zakresu dat i zwraca przefiltrowany DataFrame.
-
-    session_state zapamiętuje wybrany tryb filtrowania między kliknięciami.
-    Bez tego każde przeładowanie strony resetowałoby wybór do domyślnego.
-    """
-
-    # Upewniamy się że kolumna 'date' jest obiektem daty, a nie zwykłym tekstem
+def apply_data_filter(df: pd.DataFrame) -> pd.DataFrame:
+    # Konwersja kolumny z datami na daty
     df['date'] = pd.to_datetime(df['date'])
-
-    today = pd.Timestamp(date.today())
+    today = pd.Timestamp(date.today())      # Zmienna używana do obliczania różnicy czasu
 
     st.markdown("**📅 Zakres danych:**")
     col1, col2, col3, col4 = st.columns(4)
 
+    # Wyświetlenie opcji na 4 przyciskach
     with col1:
-        btn_7      = st.button("Ostatnie 7 dni",  width='stretch')
+        btn_7 = st.button("Ostatnie 7 dni", width="stretch")
     with col2:
-        btn_30     = st.button("Ostatnie 30 dni", width='stretch')
+        btn_30 = st.button("Ostatnie 30 dni", width="stretch")
     with col3:
-        btn_all    = st.button("Cały okres",       width='stretch')
+        btn_all = st.button("Cały okres", width="stretch")
     with col4:
-        btn_custom = st.button("Własny okres",     width='stretch')
+        btn_custom = st.button("Własny okres", width="stretch")
 
-    # Ustawiamy domyślny tryb przy pierwszym otwarciu strony
     if "chart_period" not in st.session_state:
-        st.session_state.chart_period = "30"
+        st.session_state.chart_period = "30"    # Domyślnie ustawiamy filtracje na 30 dni
 
-    # Każdy przycisk nadpisuje tryb w session_state
+    # Zmiana stanu sesji po kliknięciu w odpowiedni przycisk
     if btn_7:
         st.session_state.chart_period = "7"
     if btn_30:
@@ -46,215 +35,299 @@ def apply_date_filter(df: pd.DataFrame) -> pd.DataFrame:
     if btn_custom:
         st.session_state.chart_period = "custom"
 
-    period = st.session_state.chart_period
+    period = st.session_state.chart_period      # Odczyt wybranego okresu
 
-    # Na podstawie trybu wyznaczamy datę początkową i końcową
     if period == "7":
-        start = today - timedelta(days=7)
-        end   = today
-
+        start_date = today - timedelta(days=7)      # Dzisiejsza data - 7 dni wstecz
+        end_date = today                            # Dzisiejsza data
     elif period == "30":
-        start = today - timedelta(days=30)
-        end   = today
-
+        start_date = today - timedelta(days=30)     # Dzisiejsza data - 30 dni wstecz
+        end_date = today                            # Dzisiejsza data
     elif period == "all":
-        start = df['date'].min()
-        end   = df['date'].max()
+        start_date = df['date'].min()               # Pierwsza data z zapisanymi pomiarami
+        end_date = df['date'].max()                 # Najświeższa data z zapisanymi pomiarami
+    else:
+        c1, c2 = st.columns(2)                      # Tworzymy dwie kolumny gdzie wprowadzane będą daty początek - koniec zakresu
+        with c1:
+            start_date = pd.Timestamp(st.date_input("Data od", value = df['date'].min(), key = "custom_start"))
+        with c2:
+            end_date = pd.Timestamp(st.date_input("Data do", value = df['date'].max(), key = "custom_end"))
 
-    else:  # "custom" – ręczny wybór z kalendarza
-        c_start, c_end = st.columns(2)
-        with c_start:
-            # key= musi być unikalny w całej aplikacji, dlatego prefix "chart_"
-            start = pd.Timestamp(st.date_input("Data od", value=df['date'].min(), key="chart_start_date"))
-        with c_end:
-            end   = pd.Timestamp(st.date_input("Data do", value=df['date'].max(), key="chart_end_date"))
+    mask = (df['date'] >= start_date) & (df['date'] <= end_date)    # Tworzymy maskę do filtracji bazy danych
 
-    # Filtrujemy wiersze mieszczące się w wybranym przedziale
-    mask        = (df['date'] >= start) & (df['date'] <= end)
-    df_filtered = df.loc[mask].copy()
+    # Wybieramy z bazy danych wiersze spełniające warunki z mask i kopiujemy do nowej zmiennej
+    df_filtred = df.loc[mask].copy()
 
-    st.caption(f"Widoczne wpisy: {len(df_filtered)} | Zakres: {start.date()} → {end.date()}")
-
-    return df_filtered
-
-
-# ─────────────────────────────────────────────
-# SEKCJA 2: WYKRES – TRENDY FIZJOLOGICZNE vs BASELINE
-# ─────────────────────────────────────────────
+    return df_filtred
 
 def chart_physiology(df: pd.DataFrame):
-    """
-    Wyświetla dwa wykresy liniowe (st.line_chart):
-      – HRV rzeczywiste i HRV Baseline
-      – RHR rzeczywiste i RHR Baseline
 
-    st.line_chart przyjmuje DataFrame i automatycznie rysuje każdą kolumnę
-    jako osobną linię. Wystarczy mu podać tylko te kolumny, które nas interesują.
-    """
-
+    # Jeżeli w tabeli nie ma danych zwracam odpowiedni komunikat
     if df.empty:
-        st.info("Brak danych w wybranym przedziale czasu.")
+        st.info("Brak danych.")
         return
 
-    # Sortujemy chronologicznie – wykres musi widzieć daty od lewej do prawej
-    df = df.sort_values('date').set_index('date')
+    df = df.sort_values('date')         # Sortujemy dane z bazy chronologicznie po dacie
 
-    st.markdown("#### HRV – zmienność rytmu serca vs Baseline")
-    # Wybieramy tylko kolumny potrzebne do tego wykresu
-    # Streamlit automatycznie pokoloruje każdą kolumnę na inny kolor
-    hrv_cols = ['hrv']
-    if 'hrv_baseline' in df.columns:
-        hrv_cols.append('hrv_baseline')
+    # Tworzymy pustą kartkę/zakladke
+    fig_HRV = go.Figure()
 
-    st.line_chart(
-        df[hrv_cols].rename(columns={
-            'hrv':          'HRV (ms)',
-            'hrv_baseline': 'HRV Baseline (ms)'
-        })
-    )
-
-    st.markdown("#### RHR – tętno spoczynkowe vs Baseline")
-    rhr_cols = ['resting_heart_rate']
-    if 'rhr_baseline' in df.columns:
-        rhr_cols.append('rhr_baseline')
-
-    st.line_chart(
-        df[rhr_cols].rename(columns={
-            'resting_heart_rate': 'RHR (bpm)',
-            'rhr_baseline':       'RHR Baseline (bpm)'
-        })
-    )
-
-
-# ─────────────────────────────────────────────
-# SEKCJA 3: WYKRES – CZAS I FAZY SNU
-# ─────────────────────────────────────────────
-
-def chart_sleep(df: pd.DataFrame):
-    """
-    Wyświetla dwa wykresy związane ze snem:
-      1. st.bar_chart – skumulowane fazy snu (głęboki, REM, lekki)
-      2. st.line_chart – efektywność snu w procentach
-
-    Uwaga: natywny st.bar_chart w Streamlicie nie ma trybu "stacked"
-    jak Plotly, więc fazy snu wyświetlamy obok siebie w grupach (grouped bars).
-    Dla pełnego stacked potrzeba by Plotly lub Altair – tutaj zostawiamy prosto.
-    """
-
-    if df.empty:
-        st.info("Brak danych w wybranym przedziale czasu.")
-        return
-
-    df = df.sort_values('date').set_index('date')
-
-    # Wyliczamy "resztę" snu (lekkiego), zabezpieczając się przed ujemnymi wartościami
-    df['light_sleep'] = (
-        df['sleep_hours'] - df['deep_sleep_hours'] - df['rem_sleep_hours']
-    ).clip(lower=0)
-
-    st.markdown("#### Fazy snu (h)")
-    st.bar_chart(
-        df[['deep_sleep_hours', 'rem_sleep_hours', 'light_sleep']].rename(columns={
-            'deep_sleep_hours': 'Sen głęboki (h)',
-            'rem_sleep_hours':  'Sen REM (h)',
-            'light_sleep':      'Sen lekki (h)'
-        })
-    )
-
-    # Efektywność snu jako osobny wykres liniowy (inny zakres wartości: 0-100%)
-    if 'sleep_efficiency' in df.columns and df['sleep_efficiency'].notna().any():
-        st.markdown("#### Efektywność snu (%)")
-        st.line_chart(
-            df[['sleep_efficiency']].rename(columns={
-                'sleep_efficiency': 'Efektywność snu (%)'
-            })
+    # Naklejami pierwszą warstwę - linia HRV
+    # go.Scatter - linia lub punkty (zalezy od parametru "mode")
+    fig_HRV.add_trace(
+        go.Scatter(
+            x = df['date'],             # oś pozioma - data
+            y = df['hrv'],              # oś pionowa - wartości HRV
+            mode = 'lines + markers',   # 'lines' - linie | 'markers' - punkty
+            name = 'HRV (ms)',               # etykieta w legendzie
+            line = dict(
+                color="#1f77b4",        # Kolor lini (błękitny)
+                width=2                 # Grubość lini
+            )
         )
-
-
-# ─────────────────────────────────────────────
-# SEKCJA 4: WYKRES – OBCIĄŻENIE vs REGENERACJA
-# ─────────────────────────────────────────────
-
-def chart_strain_vs_recovery(df: pd.DataFrame):
-    """
-    Zestawia dwa wykresy ilustrujące zależność między wysiłkiem a regeneracją:
-      1. st.bar_chart – Day Strain i Activity Strain (jak ciężki był dzień)
-      2. st.line_chart – Recovery Score (jak dobrze się zregenerowaliśmy)
-
-    Wykresy są osobne, bo mają różne skale (Strain: 0-21, Recovery: 0-100%).
-    Użytkownik wizualnie porównuje, co dzieje się z regeneracją dzień po ciężkim treningu.
-    """
-
-    if df.empty:
-        st.info("Brak danych w wybranym przedziale czasu.")
-        return
-
-    df = df.sort_values('date').set_index('date')
-
-    st.markdown("#### Obciążenie dnia (Day Strain i Activity Strain)")
-    strain_cols = ['day_strain']
-    if 'activity_strain' in df.columns and df['activity_strain'].notna().any():
-        strain_cols.append('activity_strain')
-
-    st.bar_chart(
-        df[strain_cols].rename(columns={
-            'day_strain':      'Day Strain (0–21)',
-            'activity_strain': 'Activity Strain (0–21)'
-        })
     )
 
-    # Recovery Score osobno jako linia – inna skala (%)
-    if 'recovery_score' in df.columns and df['recovery_score'].notna().any():
-        st.markdown("#### Recovery Score (%)")
-        st.line_chart(
-            df[['recovery_score']].rename(columns={
-                'recovery_score': 'Recovery Score (%)'
-            })
+    fig_HRV.add_trace(
+        go.Scatter(
+            x = df['date'],             # oś pozioma - data
+            y = df['hrv_baseline'],     # oś pionowa - wartość HRV baseline
+            mode = 'lines',             # 'lines' sama linia poglądowa
+            name = 'HRV Baseline (ms)',      # etykieta w legendzie
+            line = dict(
+                color="#ff7f0e",        # Kolor lini (pomarańczowy)
+                dash="dash"             # dash tworzy linie przerywaną
+            )
         )
+    )
 
+    # Opisy na kartce - tytuł i nazwy osi
+    fig_HRV.update_layout(
+        title = 'HRV vs Baseline w czasie', # Tytuł wykresu
+        xaxis_title = 'Data',               # Nazwa lini poziomej
+        yaxis_title = 'HRV (ms)',           # Nazwa lini pionowej
+        hovermode = "x unified",            # pokazuje wartości obu linie po najechaniu
+    )
 
-# ─────────────────────────────────────────────
-# SEKCJA 5: GŁÓWNA FUNKCJA EKSPORTOWANA DO App.py
-# ─────────────────────────────────────────────
+    # Tworzymy drugą pustą kartkę
+    fig_RHR = go.Figure()
 
-def render_charts_section(user_id: str, df_history: pd.DataFrame):
-    """
-    Jedyna funkcja, którą importujesz i wywołujesz z App.py:
+    fig_RHR.add_trace(
+        go.Scatter(
+            x = df['date'],                 # oś pozioma - data
+            y = df['resting_heart_rate'],   # oś pionowa - wartości RHR
+            name = "RHR (bpm)",                   # etykieta w legendzie
+            mode = 'lines + markers',       # 'lines' - linie | 'markers' - punkty
+            line = dict(
+                color="#e74c3c",            # Kolor lini (czerwony)
+                width=2                     # Grubość lini
+            ),
+        )
+    )
 
-        from charts import render_charts_section
-        render_charts_section(user_id, get_user_history(user_id))
+    fig_RHR.add_trace(
+        go.Scatter(
+            x = df['date'],                 # oś pozioma - data
+            y = df['rhr_baseline'],         # oś pionowa - wartość RHR baseline
+            mode = 'lines',                 # 'lines' sama linia poglądowa
+            name = "RHR Baseline (bpm)",          # etykieta w legendzie
+            line = dict(
+                color="#1f77b4",            # Kolor lini (błękitny)
+                dash='dash'                 # dash - linia przerywana
+            )
+        )
+    )
 
-    Kolejność działania:
-      1. Sprawdza czy są dane do wyświetlenia
-      2. Filtruje historię wg wybranego zakresu dat
-      3. Dzieli widok na 3 zakładki i wywołuje odpowiednie funkcje rysujące
-    """
+    fig_RHR.update_layout(
+        title = "RHR vs Baseline w czasie",     # Tytuł wykresu
+        xaxis_title = "Data",                   # Nazwa lini pionowej
+        yaxis_title = "RHR (bpm)",               # Nazwa lini poziomej
+        hovermode = "x unified",                # Pokazuje wartość obu lini po najechaniu
+    )
 
-    st.subheader("📈 Analiza Trendów")
+    # Przekazanie kartki do Streamlita
+    st.plotly_chart(fig_HRV, width = 'stretch')
+    st.plotly_chart(fig_RHR, width = 'stretch')
 
+def chart_sleep_stacked(df: pd.DataFrame):
+
+    # Jeżeli w tabeli nie ma danych zwracam odpowiedni komunikat
+    if df.empty:
+        st.info("Brak danych.")
+        return
+
+    df = df.sort_values('date')  # Sortujemy dane z bazy chronologicznie po dacie
+
+    # Wyliczamy sen lekki jako wypadkowa snu głebokiego i fazy REM
+    df['light_sleep_hours'] = (
+            df['sleep_hours'] - df['deep_sleep_hours'] - df['rem_sleep_hours']
+    ).clip(lower=0)             # Zabezpieczenie przed wartościami ujemnymi
+
+    # Tworzymy pustą kartkę
+    fig = go.Figure()
+
+    # Tworzymy część słupka odpowiedzialną za Sen Głęboki
+    fig.add_trace(
+        go.Bar(
+            x = df['date'],                 # oś pozioma - data
+            y = df['deep_sleep_hours'],     # oś pionowa - ilosc godziny snu głebokiego
+            name = "Sen głęboki (h)",       # etykieta w legendzie
+            marker_color = "#1f77b4",       # kolor słupka (błękitny)
+            yaxis = "y1",                   # Przypisanie wartości do lewej osi y
+        )
+    )
+
+    # Tworzymy część słupka odpowiedzialną za Sen Fazy REM
+    fig.add_trace(
+        go.Bar(
+            x = df['date'],                   # oś pozioma - data
+            y = df['rem_sleep_hours'],        # oś pionowa - ilosc godziny snu fazy REM
+            name = "Sen REM (h)",             # etykieta w legendzie
+            marker_color = "#9467bd",         # kolor słupka (fioletowy)
+            yaxis = "y1",                     # Przypisanie wartości do lewej osi y
+        )
+    )
+
+    # Tworzymy część słupka odpowiedzialną za Sen Lekki
+    fig.add_trace(
+        go.Bar(
+            x = df['date'],                   # oś pozioma - data
+            y = df['light_sleep_hours'],      # oś pionowa - ilosc godziny snu lekkiego
+            name = "Sen lekki (h)",           # etykieta w legendzie
+            marker_color = "#aec7e8",         # kolor słupka (jasny niebieski)
+            yaxis = "y1",                     # Przypisanie wartości do lewej osi y
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x = df['date'],                 # oś pozioma - data
+            y = df['sleep_efficiency'],     # oś pionowa - wartości jakości snu
+            mode = 'lines + markers',         # lines - linie | markers - punkty
+            name = "Efektywność snu (%)",   # etykieta w legendzie
+            line = dict(
+                color = "#2ecc71",          # Kolor lini (zielony)
+                width = 3                   # Grubość lini
+            ),
+            yaxis = "y2",                   # Przypisujemy wartości do prawej strony
+        )
+    )
+
+    # Konfiguracja widoku
+    fig.update_layout(
+        title = "Analiza snu + Efektywność",    # Tytuł wykresu
+        xaxis_title = "Data",                   # Nazwa osi poziomej
+        barmode = "stack",                      # stack - nakłada słupki na siebie
+        yaxis = dict(
+            title = "Czas snu (h)",             # Nazwa lewej osi pionowej
+            side = "left",                      # Ustawienie po lewej stronie wykresu
+        ),
+        yaxis2 = dict(
+            title = "Efektywność snu (%)",      # Nazwa prawej osi pionowej
+            side = "right",                     # Ustawienie po prawej stronie wykresu
+            overlaying = "y",                   # Nałożenie osi na ten sam wykres
+            range = [0,100],                    # Sztywny zakres 0 - 100
+        ),
+        hovermode = "x unified"                 # Pokazuje wszystkie wartość po najechaniu na date
+    )
+
+    st.plotly_chart(fig, width = 'stretch')
+
+def chart_strain_group (df: pd.DataFrame):
+    # Jeżeli w tabeli nie ma danych zwracam odpowiedni komunikat
+    if df.empty:
+        st.info("Brak danych.")
+        return
+
+    df = df.sort_values('date')  # Sortujemy dane z bazy chronologicznie po dacie
+
+    # Tworzymy pustą kartkę
+    fig = go.Figure()
+
+    # Tworzymy część słupka odpowiedzialną za Obciążenie Dnia
+    fig.add_trace(
+        go.Bar(
+            x = df['date'],                   # oś pozioma - data
+            y = df['day_strain'],             # oś pionowa - obciążenie dnia
+            name = "Obciążenie Dnia",              # etykieta w legendzie
+            marker_color = "#eb9b54",         # kolor słupka (jasny pomarańczowy)
+            yaxis = "y1",                     # Przypisanie wartości do lewej osi y
+        )
+    )
+
+    # Tworzymy część słupka odpowiedzialną za Obciążenie Treningu
+    fig.add_trace(
+        go.Bar(
+            x = df['date'],                 # oś pozioma - data
+            y = df['activity_strain'],      # oś pionowa - ilosc godziny snu lekkiego
+            name = "Obciążenie Treningowe",       # etykieta w legendzie
+            marker_color="#d35400",         # kolor słupka (ciemny pomarańcz)
+            yaxis="y1",                     # Przypisanie wartości do lewej osi y
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df['date'],                   # oś pozioma - data
+            y=df['recovery_score'],         # oś pionowa - wartości jakości snu
+            mode='lines + markers',         # lines - linie | markers - punkty
+            name="Wartość regeneracji (%)", # etykieta w legendzie
+            line=dict(
+                color="#2ecc71",            # Kolor lini (zielony)
+                width=3                     # Grubość lini
+            ),
+            yaxis="y2",                     # Przypisujemy wartości do prawej strony
+        )
+    )
+
+    # Konfiguracja widoku
+    fig.update_layout(
+        title="Analiza wysiłku vs Regeneracja",     # Tytuł wykresu
+        xaxis_title="Data",                         # Nazwa osi poziomej
+        barmode="group",                            # group - stawia słupki obok siebie
+        yaxis=dict(
+            title="Obciążenie (0-21)",              # Nazwa lewej osi pionowej
+            side="left",                            # Ustawienie po lewej stronie wykresu
+            range = [0, 21],                        # Na sztyno ustawione limity
+        ),
+        yaxis2=dict(
+            title="Wskaźnik regeneracji (%)",       # Nazwa prawej osi pionowej
+            side="right",                           # Ustawienie po prawej stronie wykresu
+            overlaying="y",                         # Nałożenie osi na ten sam wykres
+            range=[0, 100],                         # Sztywny zakres 0 - 100
+        ),
+        hovermode="x unified"                       # Pokazuje wszystkie wartość po najechaniu na date
+    )
+
+    st.plotly_chart(fig, width='stretch')
+
+def charts_tab_section(df_history: pd.DataFrame):
+    st.subheader("📈 Analiza trendów")
+
+    # Jeżeli w tabeli nie ma danych zwracam odpowiedni komunikat
     if df_history.empty:
-        st.info("Brak danych historycznych. Dodaj co najmniej kilka wpisów aby zobaczyć wykresy.")
+        st.info("Brak danych.")
         return
 
-    # Filtrujemy dane – apply_date_filter() wyświetla przyciski i zwraca odcięty DataFrame
-    df_filtered = apply_date_filter(df_history)
+    # Filtrowanie po dacie TO DO
+    df_filtred = apply_data_filter(df_history)
 
-    if df_filtered.empty:
-        st.warning("Brak wpisów w wybranym zakresie dat. Rozszerz filtr.")
+    # Zabezpieczenie gdyby nie udalo sie pozyskac danych
+    if df_filtred.empty:
+        st.warning("Brak danych w wybranym przedziale czasu")
         return
 
-    # Tworzymy 3 zakładki – kliknięcie przełącza widok bez przeładowania strony
-    tab1, tab2, tab3 = st.tabs([
-        "🫀 Fizjologia vs Baseline",
-        "🛏️ Fazy Snu",
-        "💪 Obciążenie vs Regeneracja"
-    ])
+    # Tworzymy zakladni przechowujace nasze wykresy
+    tab_hrv_rhr, tab_sleep, tab_strain = st.tabs([
+        "HRV / RHR vs Baseline",
+        "Analiza Snu",
+        "Wysiłem vs Regeneracja",
+    ], width="stretch")
 
-    with tab1:
-        chart_physiology(df_filtered)
+    with tab_hrv_rhr:
+        chart_physiology(df_filtred)
 
-    with tab2:
-        chart_sleep(df_filtered)
+    with tab_sleep:
+        chart_sleep_stacked(df_filtred)
 
-    with tab3:
-        chart_strain_vs_recovery(df_filtered)
+    with tab_strain:
+        chart_strain_group(df_filtred)

@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+
 from datetime import date, timedelta
 
 
@@ -301,6 +302,88 @@ def chart_strain_group (df: pd.DataFrame):
     st.plotly_chart(fig, width='stretch')
 
 # TO DO Wykonanie wykresu dla ACWR
+def chart_acwr(df:pd.DataFrame):
+
+    # Jeżeli w tabeli nie ma danych zwracam odpowiedni komunikat
+    if df.empty or 'acwr' not in df.columns:
+        st.info("Brak danych.")
+        return
+
+    # Tworzymy pustą kartkę
+    fig = go.Figure()
+
+    # Rysujemy linie i punkty przedstawiające zmienność wartości ACWR
+    fig.add_trace(
+        go.Scatter(
+            x=df['date'],  # oś pozioma - data
+            y=df['acwr'],  # oś pionowa - wartości ACWR
+            mode='lines + markers',  # 'lines' - linie | 'markers' - punkty
+            name='ACWR',  # etykieta w legendzie
+            line=dict(
+                color="#1f77b4",  # Kolor lini (błękitny)
+                width=2  # Grubość lini
+            )
+        )
+    )
+
+    # Dodajemy wypełnienie tła ilustrujacego mała ilość wysiłków
+    fig.add_hrect(
+        y0 = 0.0,                                   # Dolna granica strefy
+        y1 = 0.8,                                   # Górna granica strefy
+        fillcolor = "blue",                         # Kolor wypełnienia
+        opacity = 0.15,                             # Stopień przeźroczystości
+        layer = "below",                            # Rysuje prostokąt pod wykresem
+        line_width = 0,                             # Grubość obramowania
+        annotation_text = "🔵 Niska aktywnosc (0.0 - 0.8)",  # Tekst wewnątrz strefy
+        annotation_position = "top left",           # Pozycja tekstu
+    )
+
+    # Dodajemy wypełnienie tła ilustrujacego idealne warunki do mocniejszych treningów
+    fig.add_hrect(
+        y0 = 0.8,                                   # Dolna granica strefy
+        y1 = 1.3,                                   # Górna granica strefy
+        fillcolor = "green",                        # Kolor wypełnienia
+        opacity = 0.15,                             # Stopień przeźroczystości
+        layer = "below",                            # Rysuje prostokąt pod wykresem
+        line_width = 0,                             # Grubość obramowania
+        annotation_text = "🟢 Sweet Spot (0.8 - 1.3)",   # Tekst wewnątrz strefy
+        annotation_position = "top left",           # Pozycja tekstu
+    )
+
+    # Dodajemy wypełnienie tła ilustrujacego początki przetrenowania
+    fig.add_hrect(
+        y0 = 1.3,                                   # Dolna granica strefy
+        y1 = 1.5,                                   # Górna granica strefy
+        fillcolor = "yellow",                       # Kolor wypełnienia
+        opacity = 0.15,                             # Stopień przeźroczystości
+        layer = "below",                            # Rysuje prostokąt pod wykresem
+        line_width = 0,                             # Grubość obramowania
+        annotation_text = "🟡 Ostrzeżenie przetrenowania (1.3 - 1.5)",   # Tekst wewnątrz strefy
+        annotation_position = "top left",           # Pozycja tekstu
+    )
+
+    # Dodajemy wypełnienie tła ilustrujacego ryzyko kontuzji
+    fig.add_hrect(
+        y0 = 1.5,                                   # Dolna granica strefy
+        y1 = 3.0,                                   # Górna granica strefy
+        fillcolor = "yellow",                       # Kolor wypełnienia
+        opacity = 0.15,                             # Stopień przeźroczystości
+        layer = "below",                            # Rysuje prostokąt pod wykresem
+        line_width = 0,                             # Grubość obramowania
+        annotation_text = "🔴 Ryzyko kontuzji (> 1.5 )", # Tekst wewnątrz strefy
+        annotation_position = "top left",           # Pozycja tekstu
+    )
+
+    #
+    fig.update_layout(
+        title="Zachowanie wskaźnika ACWR",          # Tytuł wykresu
+        xaxis_title="Data",                         # Nazwa lini pionowej
+        yaxis_title="Wskaźnik ACWR",                # Nazwa lini poziomej
+        hovermode="x unified",                      # Pokazuje wartość po najechaniu
+    )
+
+    # Przekazanie kartki do Streamlita
+    st.plotly_chart(fig, width="stretch")
 
 def charts_tab_section(df_history: pd.DataFrame):
     st.subheader("📈 Analiza trendów")
@@ -309,6 +392,12 @@ def charts_tab_section(df_history: pd.DataFrame):
     if df_history.empty:
         st.info("Brak danych.")
         return
+
+    # Przeliczanie ACWR na potrzeby wykresu jeszcze przed filtracją
+    df_history = df_history.sort_values('date')
+    df_history['acute_strain'] = df_history['day_strain'].rolling(window = 7, min_periods = 1).mean()
+    df_history['chronic_strain'] = df_history['day_strain'].rolling(window = 28, min_periods = 1).mean()
+    df_history['acwr'] = df_history['acute_strain'] / df_history['chronic_strain']
 
     # Filtrowanie po dacie TO DO
     df_filtred = apply_data_filter(df_history)
@@ -319,11 +408,12 @@ def charts_tab_section(df_history: pd.DataFrame):
         return
 
     # Tworzymy zakladni przechowujace nasze wykresy
-    tab_hrv_rhr, tab_sleep, tab_strain = st.tabs([
+    tab_hrv_rhr, tab_sleep, tab_strain, tab_acwr = st.tabs([
         "HRV / RHR vs Baseline",
         "Analiza Snu",
         "Wysiłem vs Regeneracja",
-    ], width="stretch")
+        "Wskaźnik ACWR"
+    ])
 
     with tab_hrv_rhr:
         chart_physiology(df_filtred)
@@ -333,3 +423,5 @@ def charts_tab_section(df_history: pd.DataFrame):
 
     with tab_strain:
         chart_strain_group(df_filtred)
+    with tab_acwr:
+        chart_acwr(df_filtred)

@@ -10,7 +10,10 @@ polish_feature = {
     'rhr_baseline': 'Norma bazowa RHR',
     'hrv_deviation': 'Odchylenie HRV',
     'rhr_deviation': 'Odchylenie RHR',
+    'hrv_7d_mean': 'Średnie HRV (7 dni) ',
+    'rhr_7d_mean': 'Średnia RHR (7 dni)',
     'sleep_hours': 'Czas snu',
+    'sleep_hours_7d_mean': 'Średnia czas snu (7 dni)',
     'sleep_efficiency': 'Efektywnosc snu',
     'deep_sleep_hours': 'Sen głęboki',
     'rem_sleep_hours': 'Sen REM',
@@ -75,6 +78,15 @@ def shap_section(model, input_data: pd.DataFrame):
     # Rozwijana sekcja z pełnym wykresem wodospadowym SHAP
     with st.expander("Szczegółowy wykres wodospadowy", expanded = False):
 
+        st.markdown("""
+                ### 📖 Jak czytać wykres wodospadowy?
+                * **📊 Oś pozioma $f(x)$**: Wynik regeneracji wyrazony w punktach procentowych.
+                * **🎯 Wartość bazowa $E[f(x)]$**: średni wynik regeneracji w bazie danych.
+                * **🔴 Kolor czerwony**: Paski skierowane w prawo - cechy które **podniosły** wartość.
+                * **🔵 Kolor niebieski**: Paski skierowane w lewo - cechy które **obniżyły** wartość.
+                * **🏷️ Wartości przy słupkach ($+X.XX$ / $-X.XX$)**: Dokładna liczba punktów dodanych / odjętych przez dany parametr.
+                """)
+
         # Tworzymy nowa kartę
         fig, ax = plt.subplots(figsize = (8, 5))
 
@@ -86,12 +98,3 @@ def shap_section(model, input_data: pd.DataFrame):
 
         # Czyszczenie pamięci podręcznej matplotlib
         plt.close()
-
-        st.markdown("""
-        ### Jak czytać wykres wodospadowy?
-        * **Oś pozioma**: Wynik regeneracji wyrazony w punktach procentowych.
-        * **Wartość bazowa**: średni wynik regeneracji w bazie danych.
-        * **Kolor czerwony**: Paski skierowane w prawo - cechy które **podniosły** wartość.
-        * **Kolor niebieski**: Paski skierowane w lewo - cechy które **obniżyły** wartość.
-        * **Wartości przy słupkach**: Dokładna liczba punktów dodanych / odjętych przez dany parametr.
-        """)

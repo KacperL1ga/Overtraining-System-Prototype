@@ -7,6 +7,7 @@ from analytics import calculate_baseline_deviation, input_features_table, calcul
 from database import init_db, get_user_history, save_daily_logs
 from dialogs import show_delete_dialog, show_edit_dialog
 from charts import charts_tab_section
+from shap_analysis import shap_section
 
 # Inicjalizacja bazy danych
 init_db()
@@ -229,6 +230,10 @@ else:
                         st.warning(f"{status_emoji} {status_text}")
                     else:
                         st.error(f"{status_emoji} {status_text}")
+
+                # Sekcja od analizy SHAP
+                st.divider()
+                shap_section(model, input_data)
 
     st.divider()
     with st.expander("📊 Twoja historia pomiarów", expanded=False):

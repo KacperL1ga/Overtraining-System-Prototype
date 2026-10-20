@@ -366,7 +366,7 @@ def chart_acwr(df:pd.DataFrame):
     fig.add_hrect(
         y0 = 1.5,                                   # Dolna granica strefy
         y1 = 3.0,                                   # Górna granica strefy
-        fillcolor = "yellow",                       # Kolor wypełnienia
+        fillcolor = "red",                          # Kolor wypełnienia
         opacity = 0.15,                             # Stopień przeźroczystości
         layer = "below",                            # Rysuje prostokąt pod wykresem
         line_width = 0,                             # Grubość obramowania
@@ -397,7 +397,7 @@ def charts_tab_section(df_history: pd.DataFrame):
     df_history = df_history.sort_values('date')
     df_history['acute_strain'] = df_history['day_strain'].rolling(window = 7, min_periods = 1).mean()
     df_history['chronic_strain'] = df_history['day_strain'].rolling(window = 28, min_periods = 1).mean()
-    df_history['acwr'] = df_history['acute_strain'] / df_history['chronic_strain']
+    df_history['acwr'] = df_history['acute_strain'] / df_history['chronic_strain'].fillna(1.0)
 
     # Filtrowanie po dacie TO DO
     df_filtred = apply_data_filter(df_history)
@@ -411,7 +411,7 @@ def charts_tab_section(df_history: pd.DataFrame):
     tab_hrv_rhr, tab_sleep, tab_strain, tab_acwr = st.tabs([
         "HRV / RHR vs Baseline",
         "Analiza Snu",
-        "Wysiłem vs Regeneracja",
+        "Wysiłek vs Regeneracja",
         "Wskaźnik ACWR"
     ])
 

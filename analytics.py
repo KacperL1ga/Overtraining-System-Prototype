@@ -96,7 +96,7 @@ def interpret_acwr(acwr_value: float):
     if acwr_value < 0.8:
         return "Zbyt mało treningów", "info", "🔵"
     elif acwr_value <= 1.3:
-        return "Obtymalne obciążenie", "success", "🟢"
+        return "Optymalne obciążenie", "success", "🟢"
     elif acwr_value <= 1.5:
         return "Ostrzeżenie (wysokie obciążenie)", "warning", "🟡"
     else:

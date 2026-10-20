@@ -14,9 +14,9 @@ init_db()
 
 # Konfiguracja układu strony
 st.set_page_config(
-    page_title="Predykcja przetrenowania i regeneracji organizmu",
-    page_icon="📊📉",
-    layout="wide"
+    page_title = "Predykcja przetrenowania i regeneracji organizmu",
+    page_icon = "📊📉",
+    layout = "wide"
 )
 
 # Wczytanie zapisanego modelu z pamięci podręcznej
@@ -30,7 +30,7 @@ model = load_model()
 st.title("Kalkulator Regeneracji Organizmu i Niwelowania Przetrenowania")
 st.write("Wprowadź dane biometryczne oraz parametry snu i treningu aby wyznaczyć prognozowany wskaźnik regeneracji")
 
-user_id = st.text_input("Nazwa użytkownika", value="test_user_1")
+user_id = st.text_input("Nazwa użytkownika", value = "test_user_1")
 st.write(f"Witaj, **{user_id}**! 👋")
 st.divider()
 
@@ -51,18 +51,48 @@ if len(df_history) < 3:
         with col_d1:
             st.markdown("Dzień 1")
             date1 = st.date_input("Data (Dzień 1)")
-            hrv1 = st.number_input("HRV (Dzień 1)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
-            rhr1 = st.number_input("RHR (Dzień 1)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
+            hrv1 = st.number_input("HRV (Dzień 1)",
+                                   min_value = 10.0,
+                                   max_value = 250.0,
+                                   value = 75.0,
+                                   step = 1.0
+                                   )
+            rhr1 = st.number_input("RHR (Dzień 1)",
+                                   min_value = 10.0,
+                                   max_value = 250.0,
+                                   value = 75.0,
+                                   step = 1.0
+                                   )
         with col_d2:
             st.markdown("Dzień 2")
             date2 = st.date_input("Data (Dzień 2)")
-            hrv2 = st.number_input("HRV (Dzień 2)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
-            rhr2 = st.number_input("RHR (Dzień 2)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
+            hrv2 = st.number_input("HRV (Dzień 2)",
+                                   min_value = 10.0,
+                                   max_value = 250.0,
+                                   value = 75.0,
+                                   step = 1.0
+                                   )
+            rhr2 = st.number_input("RHR (Dzień 2)",
+                                   min_value = 10.0,
+                                   max_value = 250.0,
+                                   value = 75.0,
+                                   step = 1.0
+                                   )
         with col_d3:
             st.markdown("Dzień 3")
             date3 = st.date_input("Data (Dzień 3)")
-            hrv3 = st.number_input("HRV (Dzień 3)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
-            rhr3 = st.number_input("RHR (Dzień 3)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
+            hrv3 = st.number_input("HRV (Dzień 3)",
+                                   min_value = 10.0,
+                                   max_value = 250.0,
+                                   value = 75.0,
+                                   step = 1.0
+                                   )
+            rhr3 = st.number_input("RHR (Dzień 3)",
+                                   min_value = 10.0,
+                                   max_value = 250.0,
+                                   value = 75.0,
+                                   step = 1.0
+                                   )
 
         # Przycisk do zatwierdzenia formularza
         submitted = st.form_submit_button("Aktualiacja bazy danych", type="primary")
@@ -110,24 +140,89 @@ else:
     # Lewa kolumna przechowująca wartości kardiologiczne i fizjologiczne
     with col1:
         st.subheader("🫀 Układ krążenia i fizjologia")
-        hrv = st.number_input("Aktualne HRV (ms)", min_value=10.0, max_value=250.0, value=75.0, step=1.0)
-        rhr = st.number_input("Aktualne RHR (bpm)", min_value=10.0, max_value=250.0, value=60.0, step=1.0)
-        skin_temp_deviation = st.number_input("Odchylenie temp. ciała (°C)", min_value=-3.0, max_value=5.0, value=0.0, step=0.1)
+        hrv = st.number_input("Aktualne HRV (ms)",
+                              min_value = 10.0,
+                              max_value = 250.0,
+                              value = 75.0,
+                              step = 1.0
+                              )
+        rhr = st.number_input("Aktualne RHR (bpm)",
+                              min_value = 10.0,
+                              max_value = 250.0,
+                              value = 60.0,
+                              step = 1.0
+                              )
+        skin_temp_deviation = st.number_input("Odchylenie temp. ciała (°C)",
+                                              min_value = -3.0,
+                                              max_value = 5.0,
+                                              value = 0.0,
+                                              step = 0.1
+                                              )
 
     # Środkowa kolumna przechowująca wartości snu
     with col2:
         st.subheader("🛏️ Sen i wypoczynek")
-        sleep_hours = st.number_input("Czas snu (h)", min_value=0.0, max_value=15.0, value=8.0, step=0.1)
-        sleep_efficiency = st.slider("Efektywność snu (%)", min_value=50.0, max_value=100.0, value=88.0, step=1.0)
-        deep_sleep_hours = st.number_input("Sen głęboki (h)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
-        rem_sleep_hours = st.number_input("Sen REM (h)", min_value=0.0, max_value=5.0, value=1.5, step=0.1)
+        sleep_hours = st.number_input("Czas snu (h)",
+                                      min_value = 0.0,
+                                      max_value = 15.0,
+                                      value = 8.0,
+                                      step = 0.1
+                                      )
+        sleep_efficiency = st.slider("Efektywność snu (%)",
+                                     min_value = 50.0,
+                                     max_value = 100.0,
+                                     value = 88.0,
+                                     step = 1.0
+                                     )
+        deep_sleep_hours = st.number_input("Sen głęboki (h)",
+                                           min_value = 0.0,
+                                           max_value = 5.0,
+                                           value = 1.5,
+                                           step = 0.1
+                                           )
+        rem_sleep_hours = st.number_input("Sen REM (h)",
+                                          min_value = 0.0,
+                                          max_value = 5.0,
+                                          value = 1.5,
+                                          step = 0.1
+                                          )
 
     # Prawa kolumna przechowująca wartośći obciążenia i aktywności
     with col3:
         st.subheader("💪 Obciążenia i Aktywność")
-        day_strain = st.slider("Obciążenie dnia (Day Strain)", min_value=0.0, max_value=21.0, value=12.0, step=0.1)
-        activity_strain = st.slider("Obciążenie treningowe (Activity Strain)", min_value=0.0, max_value=21.0, value=8.0, step=0.1)
-        calories_burned = st.number_input("Spalone kalorie (kcal)", min_value=0, max_value=6000, value=1000, step=50)
+        day_strain = st.slider("Obciążenie dnia (Day Strain)",
+                               min_value = 0.0,
+                               max_value = 21.0,
+                               value = 12.0,
+                               step = 0.1,
+                               help = """
+                               **Skala Day Strain (0 - 21):**
+                               * **0 - 9 (Lekki):** Standardowy odpoczynek, regeneracja, spacer, praca biurowa.
+                               * **10 - 13 (Umiarkowany):** Standardowy dzień z lekką aktywnością fizyczną.
+                               * **14 - 17 (Ciężki):** Dzień z mocnym treningiem (1h biegu interwałowego, crossfit)
+                               * **18 - 21 (Ekstremalny):** Zawody sportowe, maraton, ultra-ciężki wysiłek.
+                               """
+                               )
+        activity_strain = st.slider("Obciążenie treningowe (Activity Strain)",
+                                    min_value = 0.0,
+                                    max_value = 21.0,
+                                    value = 8.0,
+                                    step = 0.1,
+                                    help = """
+                                    **Skala Activity Strain (0 - 21) dotyczy SAMEGO treningu:**
+                                    * **0.0:** Brak treningu (dzień wolny).
+                                    * **4 - 8 (Lekki):** Lekka joga, regeneracyjny trucht, spacer.
+                                    * **9 - 13 (Umiarkowany):** Standardowy trening na siłowni lub 45-60 min biegu.
+                                    * **14 - 17 (Ciężki):** Bardzo wymagająca sesja interwałowa, sparingi.
+                                    * **18 - 21 (Ekstremalny):** Bieg maratoński, zawody triatlonowe.
+                                    """
+                                    )
+        calories_burned = st.number_input("Spalone kalorie (kcal)",
+                                          min_value = 0,
+                                          max_value = 6000,
+                                          value = 1000,
+                                          step = 50
+                                          )
 
     # Automatyczne wyznaczanie odbytego treningu na podstawie obciążenia treningowego
     workout_completed = 1 if activity_strain > 0 else 0
@@ -184,7 +279,7 @@ else:
                         "date": str(curr_date),
                         "hrv": hrv,
                         "resting_heart_rate": rhr,
-                        "skin_temp_deviation": skin_temp_deviation,
+                        "skin_temp_deviation": round(skin_temp_deviation, 2),
                         "hrv_baseline": hrv_baseline,
                         "rhr_baseline": rhr_baseline,
                         "hrv_deviation": hrv_deviation,
@@ -208,7 +303,7 @@ else:
                 col_res1, col_res2, col_res3 = st.columns([1,1,1.2])
 
                 with col_res1:
-                    st.metric(label="Przewidywany Recovery Score", value=f"{score:.2f}%")
+                    st.metric(label = "Przewidywany Recovery Score", value = f"{score:.2f}%")
                     if score >= 67:
                         st.success("🟢 **Strefa Zielona (67-100%)**")
                     elif score >= 34:
@@ -217,7 +312,7 @@ else:
                         st.error("🔴 **Strefa Czerwona (0-33%)**")
 
                 with col_res2:
-                    st.metric(label="Wskaźnik ACWR (7d / 28d)", value=f"{acwr_value}")
+                    st.metric(label = "Wskaźnik ACWR (7d / 28d)", value = f"{acwr_value}")
                     st.caption("Stosunek obciążenia ostrego do przewlekłego")
 
                 with col_res3:
@@ -249,9 +344,9 @@ else:
             col_f1, col_f2 = st.columns(2)
 
             with col_f1:
-                start_date = st.date_input("Data od", value=df_history['date'].min())
+                start_date = st.date_input("Data od", value = df_history['date'].min())
             with col_f2:
-                end_date = st.date_input("Data do", value=df_history['date'].max())
+                end_date = st.date_input("Data do", value = df_history['date'].max())
 
             # Filtrowanie
             mask = (df_history['date'].dt.date >= start_date) & (df_history['date'].dt.date <= end_date)
@@ -259,24 +354,22 @@ else:
 
             # Formatowanie daty do wyświetlenia
             df_filtred['date'] = df_filtred['date'].dt.strftime('%Y-%m-%d')
-            st.dataframe(df_filtred, width="stretch")
+            st.dataframe(df_filtred, width = "stretch")
 
             # Sekcja modtfikacji danych
-            st.markdown("**🛠️ Modyfikacja wabranego wpisu**")
-            action_date = st.date_input("Wybierz datę do edycji lub usunięcia", key="action_date")
+            st.markdown("**🛠️ Modyfikacja wybranego wpisu**")
+            action_date = st.date_input("Wybierz datę do edycji lub usunięcia", key = "action_date")
 
             col_del, col_edit = st.columns(2)
 
             with col_del:
-                if st.button("🗑️ Usuń wpis", width="stretch"):
+                if st.button("🗑️ Usuń wpis", width = "stretch"):
                     show_delete_dialog(user_id, action_date)
 
             with col_edit:
-                if st.button("✏️️ Edytuj wpis", type="primary", width="stretch"):
+                if st.button("✏️️ Edytuj wpis", type = "primary", width = "stretch"):
                     show_edit_dialog(user_id, action_date, model)
     st.divider()
 
     # Sekcja generująca wykresy z filtracją
     charts_tab_section(df_history)
-
-# TO DO Analiza SHAP

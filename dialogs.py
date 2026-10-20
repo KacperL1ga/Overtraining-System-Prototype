@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import time
 
-from database import get_user_history, delete_daily_log, save_daily_logs
+from database import get_user_history, delete_daily_log, save_daily_logs, delete_users_profile, rename_user_profile
 from analytics import calculate_baseline_deviation, input_features_table
 
 # Funckja konwertująca wartości na float
@@ -103,4 +103,44 @@ def show_delete_dialog(user_id: str, action_date):
 
     with col2:
         if st.button("Anuluj", use_container_width=True):
+            st.rerun()
+
+@st.dialog("⚠️ Usunięcie profilu")
+def show_delete_profile_dialog(user_id: str):
+    st.error(f"Czy na pewno chcesz bezpowrotnie usunąć profil **{user_id}** wraz ze eszystkimi jego pomiarami?")
+    st.caption("Tej operacji nie można cofnąć!")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("Tak, usuń wszystko", type = "primary", width = "stretch"):
+            delete_users_profile(user_id)
+            st.success("Profil został usunięty!")
+            time.sleep(1)
+            st.rerun()
+
+    with col2:
+        if st.button("Anuluj", width = "stretch"):
+            st.rerun()
+
+@st.dialog("🔄 Zmiana nazwy profilu")
+def show_rename_profile_dialog(old_user_id: str):
+    new_name = st.text_input("Nowa nazwa profilu:", value = old_user_id).strip()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("Zapisz", type = "primary", width = "stretch"):
+            if new_name != old_user_id:
+                rename_user_profile(old_user_id, new_name)
+                st.success("Nazwa została zmieniona!")
+                time.sleep(1)
+                st.rerun()
+            elif new_name == old_user_id:
+                st.warning("Nowa nazwa jest identyczna jak obenca.")
+            else:
+                st.error("Nazwa nie może być pusta!")
+
+    with col2:
+        if st.button("Anuluj", width = "stretch"):
             st.rerun()

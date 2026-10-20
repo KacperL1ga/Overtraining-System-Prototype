@@ -94,3 +94,38 @@ def delete_daily_log(user_id: str, date_str: str):
     cursor.execute(sql, (user_id, date_str))
     conn.commit()
     conn.close()
+
+def get_all_users() -> list:
+    # Pobranie z bazy wszystkich użytkowników bez powtórzeń
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    sql = "SELECT DISTINCT user_id FROM daily_logs ORGER BY user_id ASC"
+    cursor.execute(sql)
+
+    users = [row[0] for row in cursor.fetchall()] #
+
+    conn.close()
+    return users
+
+def delete_users_profile(user_id: str):
+    # Usuwanie konta z całą historią pomiarów
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    sql = "DELETE FROM daily_logs WHERE user_id = ?"
+    cursor.execute(sql, (user_id,))
+
+    conn.commit()
+    conn.close()
+
+def rename_user_profile(old_user: str, new_user: str):
+    # Zmiana nazwy użytkownika
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    sql = "UPDATE daily_logs SET user_id = ? WHERE user_id = ?"
+    cursor.execute(sql, (new_user, old_user))
+
+    conn.commit()
+    conn.close()

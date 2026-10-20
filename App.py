@@ -4,8 +4,8 @@ import numpy as np
 import joblib
 
 from analytics import calculate_baseline_deviation, input_features_table, calculate_acwr, interpret_acwr
-from database import init_db, get_user_history, save_daily_logs
-from dialogs import show_delete_dialog, show_edit_dialog
+from database import init_db, get_user_history, save_daily_logs, get_all_users
+from dialogs import show_delete_dialog, show_edit_dialog, show_delete_profile_dialog, show_rename_profile_dialog
 from charts import charts_tab_section
 from shap_analysis import shap_section
 

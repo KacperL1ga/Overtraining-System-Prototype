@@ -107,7 +107,7 @@ def show_delete_dialog(user_id: str, action_date):
 
 @st.dialog("⚠️ Usunięcie profilu")
 def show_delete_profile_dialog(user_id: str):
-    st.error(f"Czy na pewno chcesz bezpowrotnie usunąć profil **{user_id}** wraz ze eszystkimi jego pomiarami?")
+    st.error(f"Czy na pewno chcesz bezpowrotnie usunąć profil **{user_id}** wraz ze wszystkimi jego pomiarami?")
     st.caption("Tej operacji nie można cofnąć!")
 
     col1, col2 = st.columns(2)
@@ -131,15 +131,15 @@ def show_rename_profile_dialog(old_user_id: str):
 
     with col1:
         if st.button("Zapisz", type = "primary", width = "stretch"):
-            if new_name != old_user_id:
+            if not new_name:
+                st.error("Nazwa nie może być pusta!")
+            elif new_name == old_user_id:
+                st.warning("Nowa nazwa jest identyczna jak obecna.")
+            else:
                 rename_user_profile(old_user_id, new_name)
                 st.success("Nazwa została zmieniona!")
                 time.sleep(1)
                 st.rerun()
-            elif new_name == old_user_id:
-                st.warning("Nowa nazwa jest identyczna jak obenca.")
-            else:
-                st.error("Nazwa nie może być pusta!")
 
     with col2:
         if st.button("Anuluj", width = "stretch"):

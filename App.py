@@ -30,7 +30,52 @@ model = load_model()
 st.title("Kalkulator Regeneracji Organizmu i Niwelowania Przetrenowania")
 st.write("Wprowadź dane biometryczne oraz parametry snu i treningu aby wyznaczyć prognozowany wskaźnik regeneracji")
 
-user_id = st.text_input("Nazwa użytkownika", value = "test_user_1")
+with st.sidebar:
+    st.header("👤 Profil Sportowca")
+
+    # Wykonujemy zapytanie do bazy o istniejące profile zawodników
+    existing_user = get_all_users()
+
+    # W przypadku braku jakichkolwiek danych, jedyna opcja jest dodanie
+    if not existing_user:
+        options = ["➕ Dodaj nowy profil"]
+    else:
+        options = existing_user + ["➕ Dodaj nowy profil"]
+
+    # Lista rozwijana z profilami do wyboru
+    selected_option = st.selectbox("Wybierz profil:", options)
+
+    # W przypadku wyboru opcji do tworzenia możemy wpisać nową nazwę, ktora poddna jest usuwaniu białych znaków
+    if selected_option == "➕ Dodaj nowy profil":
+        new_name = st.text_input("Wpisz nazwę nowego użytkownika: ").strip()
+
+        # Gdy miejsce na nazwę zostanie puste, zatrzymywane jest działanie aplikacji do czasu uzupełnienia
+        if not new_name:
+            st.warning("⚠️ Nazwa profilu nie może być pusta. Wpisz nazwę i zatwierdź ENTER.")
+            st.stop()
+
+        # Gdy podamy istniejący już profil, zatrzymywane jest działanie aplikacji do czasu wpisania poprawnego.
+        elif new_name in existing_user:
+            st.error(f"❌ Profil o nazwie **{new_name}** już istnieje w bazie! Wybierz go z listy")
+            st.stop()
+
+        else:
+            user_id = new_name
+            st.info(f"Tworzysz nowy profil: **{user_id}**")
+    else:
+        user_id = selected_option
+        st.success(f"Aktywny profil: **{user_id}**")
+
+        with st.expander("⚙️ Zarządzanie profilem"):
+            col_ren, col_del = st.columns(2)
+
+            with col_ren:
+                if st.button("🔄 Edytuj nazwę", width = "stretch"):
+                    show_rename_profile_dialog(user_id)
+            with col_del:
+                if st.button("🗑️ Usuń nazwę", width = "stretch"):
+                    show_delete_profile_dialog(user_id)
+
 st.write(f"Witaj, **{user_id}**! 👋")
 st.divider()
 

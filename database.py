@@ -100,7 +100,7 @@ def get_all_users() -> list:
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
-    sql = "SELECT DISTINCT user_id FROM daily_logs ORGER BY user_id ASC"
+    sql = "SELECT DISTINCT user_id FROM daily_logs ORDER BY user_id ASC"
     cursor.execute(sql)
 
     users = [row[0] for row in cursor.fetchall()] #

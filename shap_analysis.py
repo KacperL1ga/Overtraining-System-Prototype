@@ -36,7 +36,7 @@ def shap_section(model, input_data: pd.DataFrame):
     df_shap = pd.DataFrame({
         'features': input_data.columns,
         'shap_values': shap_values.values[0]
-    }).sort_values(by='shap_values', ascending=False)   # Sortowanie parametrów od najistotniejszego
+    }).sort_values(by = 'shap_values', ascending = False)   # Sortowanie parametrów od najistotniejszego
 
     # Podział wartości na dodatnie i ujemne
     df_plus = df_shap[df_shap['shap_values'] > 0].head(3)
@@ -63,7 +63,7 @@ def shap_section(model, input_data: pd.DataFrame):
     with col_minus:
         st.markdown("**📉 Top 3 parametry pogarszające wynik**")
         if df_minus.empty:
-            st.info("Brak parametrów o wyraźnie dodatnim wpływie")
+            st.info("Brak parametrów o wyraźnie negatywnym  wpływie")
         else:
             for _, row in df_minus.iterrows():
                 val = input_data[row['features']].values[0]

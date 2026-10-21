@@ -79,7 +79,7 @@ def get_user_history(user_id: str) -> pd.DataFrame:
 
     # Komenda zwracająca dane konkretnego uzytkownika, posortowane po dacie
     query = "SELECT * FROM daily_logs WHERE user_id = ? ORDER BY date ASC"
-    df = pd.read_sql_query(query, conn, params=(user_id,))
+    df = pd.read_sql_query(query, conn, params = (user_id,))
 
     conn.close()
     return df

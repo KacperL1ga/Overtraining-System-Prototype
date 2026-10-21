@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import joblib
 
 from sklearn.preprocessing import StandardScaler
@@ -29,9 +28,9 @@ df['hrv_deviation'] = df['hrv'] - df['hrv_baseline']
 df['rhr_deviation'] = df['resting_heart_rate'] - df['rhr_baseline']
 
 # Wyliczenie średnich 7-dniowych dla każdego użytkownika
-df['hrv_7d_mean'] = df.groupby('user_id')['hrv'].transform(lambda x: x.rolling(7, min_periods=1).mean())
-df['rhr_7d_mean'] = df.groupby('user_id')['resting_heart_rate'].transform(lambda x: x.rolling(7, min_periods=1).mean())
-df['sleep_hours_7d_mean'] = df.groupby('user_id')['sleep_hours'].transform(lambda x: x.rolling(7, min_periods=1).mean())
+df['hrv_7d_mean'] = df.groupby('user_id')['hrv'].transform(lambda x: x.rolling(7, min_periods = 1).mean())
+df['rhr_7d_mean'] = df.groupby('user_id')['resting_heart_rate'].transform(lambda x: x.rolling(7, min_periods = 1).mean())
+df['sleep_hours_7d_mean'] = df.groupby('user_id')['sleep_hours'].transform(lambda x: x.rolling(7, min_periods = 1).mean())
 
 if 'workout_completed' not in df.columns:
     df['workout_completed'] = (df['activity_strain'] > 0).astype(int)
@@ -44,10 +43,10 @@ print(f"Liczba wierszy po czyszczeniu: {len(df_cleaned)}")
 # Wybór istotnych kolumn
 features_cols = [
     'hrv', 'hrv_7d_mean', 'resting_heart_rate', 'rhr_7d_mean', 'hrv_baseline', 'rhr_baseline',
-    'skin_temp_deviation', 'hrv_deviation', 'rhr_deviation', # Fizjologia i Kardiologia
+    'skin_temp_deviation', 'hrv_deviation', 'rhr_deviation',                 # Fizjologia i Kardiologia
 
     'sleep_hours', 'sleep_hours_7d_mean', 'sleep_efficiency', 'deep_sleep_hours',
-    'rem_sleep_hours',              # Sen
+    'rem_sleep_hours',                                                       # Sen
 
     'day_strain', 'activity_strain', 'calories_burned', 'workout_completed'  # Obciążenia i aktywność
 ]
@@ -63,8 +62,8 @@ target = df_cleaned['recovery_score']
 X_train, X_test, y_train, y_test = train_test_split(
     features,
     target,
-    test_size=0.2,
-    random_state=42
+    test_size = 0.2,
+    random_state = 42
 )
 
 # Inicjalizacja algorytmu RandomForest
@@ -73,10 +72,10 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 # Inicjalizacja XGBoost
 xgb = XGBRegressor(
-    max_depth= 6,
-    n_estimators= 500,
-    learning_rate= 0.05,
-    random_state= 42
+    max_depth = 6,
+    n_estimators = 500,
+    learning_rate = 0.05,
+    random_state = 42
 )
 
 xgb.fit(X_train, y_train)
@@ -142,9 +141,9 @@ print(classification_report(y_test_zones, y_pred_zones))
 
 # Definicja modeli do porównania
 models = {
-    "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1),
-    "XGBoost005": XGBRegressor(n_estimators=500, learning_rate=0.05, random_state=42),
-    "Siec Neuronowa (MLP)": MLPRegressor(hidden_layer_sizes=(64,32), max_iter=500, random_state=42)
+    "Random Forest": RandomForestRegressor(n_estimators = 100, random_state = 42, n_jobs = -1),
+    "XGBoost005": XGBRegressor(n_estimators = 500, learning_rate = 0.05, random_state = 42),
+    "Siec Neuronowa (MLP)": MLPRegressor(hidden_layer_sizes = (64, 32), max_iter = 500, random_state = 42)
 }
 
 # Pętla służaca uczeniu i porównywaniu modeli
@@ -172,15 +171,15 @@ shap_values = explainer(X_test)
 shap_values.feature_names = features_cols
 
 # Wykres zbiorczy wpływu i kierunku cech na wynik regeneracji
-plt.figure(figsize=(10,6))
-shap.summary_plot(shap_values, X_test, feature_names=features_cols, show=False)
-plt.title("Wpływ parametrów na wskaźnik regeneracji", fontsize=12)
+plt.figure(figsize = (10, 6))
+shap.summary_plot(shap_values, X_test, feature_names = features_cols, show = False)
+plt.title("Wpływ parametrów na wskaźnik regeneracji", fontsize = 12)
 plt.tight_layout()
 plt.show()
 
 # Słupokowy wykres ważnosci cech
-plt.figure(figsize=(10,6))
-shap.plots.bar(shap_values, show=False)
+plt.figure(figsize = (10, 6))
+shap.plots.bar(shap_values, show = False)
 plt.tight_layout()
 plt.show()
 

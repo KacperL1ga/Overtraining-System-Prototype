@@ -143,12 +143,15 @@ if len(df_history) < 3:
         submitted = st.form_submit_button("Aktualiacja bazy danych", type="primary")
 
         if submitted:
+
             # Walidacja danych, sprawdzanie czy daty idą rosnąco i chronologicznie
             if not (date1 < date2 < date3):
                 st.error("Błąd: Daty muszą iść w porządku chronologicznym i bez powtarzania!")
+
             # Walidacja danych, sprawdzanie czy odstęp pomiędzy Dzień1 i Dzień3 nie są zbyt odległe
             elif (date3 - date1).days > 7:
                 st.error("Błąd: Wpisane dane nie mogą być na przestrzeni większej niż 7 dni!")
+
             # Przy bez błędnej walidacji inicjalizujemy zapis do bazy danych
             else:
                 base_data_template = {
@@ -298,13 +301,13 @@ else:
         }
 
         # Checkbox z zgodą na zapis parametrów do bazy
-        save_do_db = st.checkbox("Chcę zapisać powyższe parametry do historii pomiarów", value=True)
+        save_do_db = st.checkbox("Chcę zapisać powyższe parametry do historii pomiarów", value = True)
 
         # Funkcja dodająca 3 parametry średnich i przygotowująca Tabele do precykcji w modelu
         input_data = input_features_table(user_id, current_data)
 
         # Przycisk akcji i wyświetlanie wyniku
-        if st.button("Wyznacz wskaźnik regeneracji", type="primary", width="stretch"):
+        if st.button("Wyznacz wskaźnik regeneracji", type = "primary", width = "stretch"):
 
             # Walidacja wprowadzanych danych aby uniknąć wpisów z tą sama data
             df_history = get_user_history(user_id)
@@ -376,7 +379,7 @@ else:
                 shap_section(model, input_data)
 
     st.divider()
-    with st.expander("📊 Twoja historia pomiarów", expanded=False):
+    with st.expander("📊 Twoja historia pomiarów", expanded = False):
         df_history = get_user_history(user_id)
 
         if df_history.empty:

@@ -35,11 +35,6 @@ df['sleep_hours_7d_mean'] = df.groupby('user_id')['sleep_hours'].transform(lambd
 if 'workout_completed' not in df.columns:
     df['workout_completed'] = (df['activity_strain'] > 0).astype(int)
 
-# Czyszczenie wierszy z brakujacymi danymi
-print(f"Liczba wierszy przed czyszczeniem: {len(df)}")
-df_cleaned = df.dropna().copy()
-print(f"Liczba wierszy po czyszczeniu: {len(df_cleaned)}")
-
 # Wybór istotnych kolumn
 features_cols = [
     'hrv', 'hrv_7d_mean', 'resting_heart_rate', 'rhr_7d_mean', 'hrv_baseline', 'rhr_baseline',
@@ -50,6 +45,11 @@ features_cols = [
 
     'day_strain', 'activity_strain', 'calories_burned', 'workout_completed'  # Obciążenia i aktywność
 ]
+
+# Czyszczenie wierszy z brakujacymi danymi
+print(f"Liczba wierszy przed czyszczeniem: {len(df)}")
+df_cleaned = df.dropna(subset = features_cols + ['recovery_score']).copy()
+print(f"Liczba wierszy po czyszczeniu: {len(df_cleaned)}")
 
 print("Przykładowe dane: \n", df_cleaned.head())
 print("Przykładowe dane: \n", df_cleaned.tail())
@@ -72,10 +72,15 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 # Inicjalizacja XGBoost
 xgb = XGBRegressor(
-    max_depth = 6,
+    max_depth = 6,          # Głębokość 6 (wyłapuje interakcje cech)
     n_estimators = 500,
     learning_rate = 0.05,
-    random_state = 42
+    subsample = 0.8,        # Każde drzewo uczy się na losowych 80% wierszy
+    colsample_bytree = 0.8, # Każde drzewo losuje 80% kolumn
+    reg_alpha = 0.1,        # Regularyzacja L1 (zapobiega szumom)
+    reg_lambda = 1.0,       # Regularyzacja L2 (stabilizuje wagi)
+    random_state = 42,
+    n_jobs = -1
 )
 
 xgb.fit(X_train, y_train)

@@ -407,6 +407,8 @@ def charts_tab_section(df_history: pd.DataFrame):
         st.warning("Brak danych w wybranym przedziale czasu")
         return
 
+    st.divider()
+
     # Tworzymy zakladni przechowujace nasze wykresy
     tab_hrv_rhr, tab_sleep, tab_strain, tab_acwr = st.tabs([
         "HRV / RHR vs Baseline",

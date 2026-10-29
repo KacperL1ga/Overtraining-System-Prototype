@@ -175,7 +175,7 @@ def show_delete_profile_dialog(user_id: str):
 
 @st.dialog("🔄 Zmiana nazwy profilu")
 def show_rename_profile_dialog(old_user_id: str):
-    new_name = st.text_input("Nowa nazwa profilu:", value = old_user_id).strip()
+    new_name = st.text_input("Nowa nazwa profilu:", value = old_user_id, max_chars = 30).strip()
 
     col1, col2 = st.columns(2)
 

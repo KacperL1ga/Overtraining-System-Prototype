@@ -2,12 +2,14 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import time
 
 from analytics import calculate_baseline_deviation, input_features_table, calculate_acwr, interpret_acwr
 from database import init_db, get_user_history, save_daily_logs, get_all_users
 from dialogs import show_delete_dialog, show_edit_dialog, show_delete_profile_dialog, show_rename_profile_dialog
 from charts import charts_tab_section
 from shap_analysis import shap_section
+from datetime import date, timedelta
 
 # Inicjalizacja bazy danych
 init_db()
@@ -47,7 +49,7 @@ with st.sidebar:
 
     # W przypadku wyboru opcji do tworzenia możemy wpisać nową nazwę, ktora poddna jest usuwaniu białych znaków
     if selected_option == "➕ Dodaj nowy profil":
-        new_name = st.text_input("Wpisz nazwę nowego użytkownika: ").strip()
+        new_name = st.text_input("Wpisz nazwę nowego użytkownika: ", max_chars = 30).strip()
 
         # Gdy miejsce na nazwę zostanie puste, zatrzymywane jest działanie aplikacji do czasu uzupełnienia
         if not new_name:
@@ -93,9 +95,14 @@ if len(df_history) < 3:
         # Podział formularza na części dla każdego dnia
         col_d1, col_d2, col_d3 = st.columns(3)
 
+        today = date.today()
         with col_d1:
             st.markdown("Dzień 1")
-            date1 = st.date_input("Data (Dzień 1)")
+            date1 = st.date_input(
+                                    "Data (Dzień 1)",
+                                    value = today - timedelta(days = 2),
+                                    max_value = today
+            )
             hrv1 = st.number_input("HRV (Dzień 1)",
                                    min_value = 10.0,
                                    max_value = 250.0,
@@ -110,7 +117,11 @@ if len(df_history) < 3:
                                    )
         with col_d2:
             st.markdown("Dzień 2")
-            date2 = st.date_input("Data (Dzień 2)")
+            date2 = st.date_input(
+                                    "Data (Dzień 2)",
+                                    value = today - timedelta(days = 1),
+                                    max_value = today
+            )
             hrv2 = st.number_input("HRV (Dzień 2)",
                                    min_value = 10.0,
                                    max_value = 250.0,
@@ -125,7 +136,11 @@ if len(df_history) < 3:
                                    )
         with col_d3:
             st.markdown("Dzień 3")
-            date3 = st.date_input("Data (Dzień 3)")
+            date3 = st.date_input(
+                                    "Data (Dzień 3)",
+                                    value = today,
+                                    max_value = today
+            )
             hrv3 = st.number_input("HRV (Dzień 3)",
                                    min_value = 10.0,
                                    max_value = 250.0,
@@ -177,6 +192,8 @@ if len(df_history) < 3:
                 save_daily_logs(data3)
 
                 st.success("Gotowe! Można teraz odświeżyć stronę aby używać pełnego kalkulatora")
+                time.sleep(1)
+                st.rerun()
 
 else:
     st.subheader("🗓️ Wybierz dzień pomiaru")
@@ -379,7 +396,9 @@ else:
                 shap_section(model, input_data)
 
     st.divider()
-    with st.expander("📊 Twoja historia pomiarów", expanded = False):
+    st.markdown("### 📊 Twoja historia pomiarów")
+    st.caption("Przeglądaj dotychczasowe wpisy biometryczne, filtruj zakresy dat oraz edytuj i usuwaj wybrane dni pomiarowe.")
+    with st.expander("Baza Pomiarów", expanded = False):
         df_history = get_user_history(user_id)
 
         if df_history.empty:
@@ -387,6 +406,25 @@ else:
         else:
             # Konwersja w przypadku braku dat
             df_history['date'] = pd.to_datetime(df_history['date'])
+            df_history = df_history.sort_values(by = 'date', ascending = False)
+
+
+            # Kafelki podsumowujące
+            col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
+
+            total_records = len(df_history)     # Liczba wszystkich wpisów
+            avg_rec_score = df_history['recovery_score'].dropna().mean()    # Średnia wartość regeneracji
+            latest_row = df_history.iloc[0]
+            latest_score = latest_row['recovery_score'] if pd.notnull(latest_row.get('recovery_score')) else 0.0
+
+            with col_kpi1:
+                st.metric("Liczba wpisów: ", f"{total_records}")
+            with col_kpi2:
+                st.metric("Średni Recovery Score: ", f"{avg_rec_score:.2f}%" if pd.notnull(avg_rec_score) else "-")
+            with col_kpi3:
+                st.metric("Ostatni pomiar: ", f"{latest_row['date'].strftime('%Y-%m-%d')}")
+            with col_kpi4:
+                st.metric("Ostatni Recovery Score: ", f"{latest_score:.2f}")
 
             # Filtry dat
             col_f1, col_f2 = st.columns(2)

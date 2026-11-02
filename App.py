@@ -38,7 +38,7 @@ with st.sidebar:
     # Wykonujemy zapytanie do bazy o istniejące profile zawodników
     existing_user = get_all_users()
 
-    # W przypadku braku jakichkolwiek danych, jedyna opcja jest dodanie
+    # W przypadku braku jakichkolwiek danych jedyna opcja jest dodanie
     if not existing_user:
         options = ["➕ Dodaj nowy profil"]
     else:
@@ -90,7 +90,7 @@ if len(df_history) < 3:
 
     # Tworzenie interaktywnego formularza
     with st.form("onboarding_form"):
-        st.subheader("Inicjalzacja danych z 3 dni")
+        st.subheader("Inicjalizacja danych z 3 dni")
 
         # Podział formularza na części dla każdego dnia
         col_d1, col_d2, col_d3 = st.columns(3)
@@ -155,7 +155,7 @@ if len(df_history) < 3:
                                    )
 
         # Przycisk do zatwierdzenia formularza
-        submitted = st.form_submit_button("Aktualiacja bazy danych", type="primary")
+        submitted = st.form_submit_button("Aktualizacja bazy danych", type="primary")
 
         if submitted:
 
@@ -167,7 +167,7 @@ if len(df_history) < 3:
             elif (date3 - date1).days > 7:
                 st.error("Błąd: Wpisane dane nie mogą być na przestrzeni większej niż 7 dni!")
 
-            # Przy bez błędnej walidacji inicjalizujemy zapis do bazy danych
+            # Przy bezbłędnej walidacji inicjalizujemy zapis do bazy danych
             else:
                 base_data_template = {
                     "user_id": user_id,
@@ -227,30 +227,70 @@ else:
     # Środkowa kolumna przechowująca wartości snu
     with col2:
         st.subheader("🛏️ Sen i wypoczynek")
-        sleep_hours = st.number_input("Czas snu (h)",
-                                      min_value = 0.0,
-                                      max_value = 15.0,
-                                      value = 8.0,
-                                      step = 0.1
+
+        col_sh, col_sm = st.columns(2)
+        with col_sh:
+            sleep_h = st.number_input("Czas snu (h)",
+                                      min_value = 0,
+                                      max_value = 15,
+                                      value = 7,
+                                      step = 1
                                       )
+        with col_sm:
+            sleep_m = st.number_input("Czas snu (m)",
+                                      min_value = 0,
+                                      max_value = 59,
+                                      value = 30,
+                                      step = 1
+                                      )
+
+        sleep_hours = round(sleep_h + (sleep_m / 60.0), 2)
+        st.caption(f"Przeliczenie: **{sleep_h}h {sleep_m}min** = **{sleep_hours:.2f} h**")
+
         sleep_efficiency = st.slider("Efektywność snu (%)",
                                      min_value = 50.0,
                                      max_value = 100.0,
                                      value = 88.0,
                                      step = 1.0
                                      )
-        deep_sleep_hours = st.number_input("Sen głęboki (h)",
-                                           min_value = 0.0,
-                                           max_value = 5.0,
-                                           value = 1.5,
-                                           step = 0.1
-                                           )
-        rem_sleep_hours = st.number_input("Sen REM (h)",
-                                          min_value = 0.0,
-                                          max_value = 5.0,
-                                          value = 1.5,
-                                          step = 0.1
-                                          )
+
+        col_dsh, col_dsm = st.columns(2)
+        with col_dsh:
+            deep_sleep_h = st.number_input("Czas snu głębokiego (h)",
+                                      min_value = 0,
+                                      max_value = 5,
+                                      value = 1,
+                                      step = 1
+                                      )
+        with col_dsm:
+            deep_sleep_m = st.number_input("Czas snu głębokiego (m)",
+                                      min_value = 0,
+                                      max_value = 59,
+                                      value = 30,
+                                      step = 1
+                                      )
+
+        deep_sleep_hours = round(deep_sleep_h + (deep_sleep_m / 60.0), 2)
+        st.caption(f"Przeliczenie: **{deep_sleep_h}h {deep_sleep_m}min** = **{deep_sleep_hours:.2f} h**")
+
+        col_rsh, col_rsm = st.columns(2)
+        with col_rsh:
+            rem_sleep_h = st.number_input("Czas snu REM (h)",
+                                      min_value = 0,
+                                      max_value = 5,
+                                      value = 1,
+                                      step = 1
+                                      )
+        with col_rsm:
+            rem_sleep_m = st.number_input("Czas snu REM (m)",
+                                      min_value = 0,
+                                      max_value = 59,
+                                      value = 30,
+                                      step = 1
+                                      )
+
+        rem_sleep_hours = round(rem_sleep_h + (rem_sleep_m / 60.0), 2)
+        st.caption(f"Przeliczenie: **{rem_sleep_h}h {rem_sleep_m}min** = **{rem_sleep_hours:.2f} h**")
 
     # Prawa kolumna przechowująca wartośći obciążenia i aktywności
     with col3:

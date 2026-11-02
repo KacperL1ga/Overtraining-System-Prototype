@@ -19,7 +19,7 @@ def init_db():
             
             hrv REAL,                           -- Zmiennosc rytmu serca (ms)
             resting_heart_rate REAL,            -- Tętno spoczynkowe (bpm)
-            skin_temp_deviation REAL,           -- Odchylenie temperatury działa (= x - 36.6)
+            skin_temp_deviation REAL,           -- Odchylenie temperatury ciała (= x - 36.6)
             
             hrv_baseline REAL,                  -- Wartość bazowa HRV
             rhr_baseline REAL,                  -- Wartość bazowa RHR
@@ -27,7 +27,7 @@ def init_db():
             rhr_deviation REAL,                 -- Odchylenie RHR od baseline'u
             
             sleep_hours REAL,                   -- Łączny czas snu (h)
-            sleep_efficiency REAL,              -- Efentywność snu (%)
+            sleep_efficiency REAL,              -- Efektywność snu (%)
             deep_sleep_hours REAL,              -- Sen głęboki (%)
             rem_sleep_hours REAL,               -- Sen REM (%)
             
@@ -108,7 +108,7 @@ def get_all_users() -> list:
     conn.close()
     return users
 
-def delete_users_profile(user_id: str):
+def delete_user_profile(user_id: str):
     # Usuwanie konta z całą historią pomiarów
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()

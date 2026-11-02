@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import time
 
-from database import get_user_history, delete_daily_log, save_daily_logs, delete_users_profile, rename_user_profile
+from database import get_user_history, delete_daily_log, save_daily_logs, delete_user_profile, rename_user_profile
 from analytics import calculate_baseline_deviation, input_features_table
 
 # Funckja konwertująca wartości na float
@@ -57,30 +57,80 @@ def show_edit_dialog(user_id: str, action_date, model):
         # Środkowa kolumna przechowująca wartości snu
         with col2:
             st.subheader("🛏️ Sen i wypoczynek")
-            sleep_hours = st.number_input("Czas snu (h)",
-                                          min_value = 0.0,
-                                          max_value = 15.0,
-                                          value = floatt(row['sleep_hours'], 8.0),
-                                          step = 0.1
+
+            total_sleep_min = int(floatt(row['sleep_hours'], 8.0) * 60)
+            total_deep_sleep_min = int(floatt(row['deep_sleep_hours'], 1.5) * 60)
+            total_rem_sleep_min = int(floatt(row['rem_sleep_hours'], 1.5) * 60)
+
+            def_sh = total_sleep_min // 60
+            def_sm = total_sleep_min % 60
+
+            def_dsh = total_deep_sleep_min // 60
+            def_dsm = total_deep_sleep_min % 60
+
+            def_rsh = total_rem_sleep_min // 60
+            def_rsm = total_rem_sleep_min % 60
+
+            col_sh, col_sm = st.columns(2)
+            with col_sh:
+                sleep_h = st.number_input("Czas snu (h)",
+                                          min_value = 0,
+                                          max_value = 15,
+                                          value = def_sh,
+                                          step = 1
                                           )
+            with col_sm:
+                sleep_m = st.number_input("Czas snu (m)",
+                                          min_value = 0,
+                                          max_value = 59,
+                                          value = def_sm,
+                                          step = 1
+                                          )
+
+            sleep_hours = round(sleep_h + (sleep_m / 60.0), 2)
+
             sleep_efficiency = st.slider("Efektywność snu (%)",
                                          min_value = 50.0,
                                          max_value = 100.0,
                                          value = floatt(row['sleep_efficiency'], 88.0),
                                          step = 1.0
                                          )
-            deep_sleep_hours = st.number_input("Sen głęboki (h)",
-                                               min_value = 0.0,
-                                               max_value = 5.0,
-                                               value = floatt(row['deep_sleep_hours'], 1.5),
-                                               step = 0.1
+
+            col_dsh, col_dsm = st.columns(2)
+            with col_dsh:
+                deep_sleep_h = st.number_input("Czas snu głębokiego (h)",
+                                          min_value = 0,
+                                          max_value = 5,
+                                          value = def_dsh,
+                                          step = 1
+                                          )
+            with col_dsm:
+                deep_sleep_m = st.number_input("Czas snu głębokiego (m)",
+                                          min_value = 0,
+                                          max_value = 59,
+                                          value = def_dsm,
+                                          step = 1
+                                          )
+
+            deep_sleep_hours = round(deep_sleep_h + (deep_sleep_m / 60.0), 2)
+
+            col_rsh, col_rsm = st.columns(2)
+            with col_rsh:
+                rem_sleep_h = st.number_input("Czas snu REM (h)",
+                                               min_value = 0,
+                                               max_value = 5,
+                                               value = def_rsh,
+                                               step = 1
                                                )
-            rem_sleep_hours = st.number_input("Sen REM (h)",
-                                              min_value = 0.0,
-                                              max_value = 5.0,
-                                              value = floatt(row['rem_sleep_hours'], 1.5),
-                                              step = 0.1
-                                              )
+            with col_rsm:
+                rem_sleep_m = st.number_input("Czas snu REM (m)",
+                                               min_value = 0,
+                                               max_value = 59,
+                                               value = def_rsm,
+                                               step = 1
+                                               )
+
+            rem_sleep_hours = round(rem_sleep_h + (rem_sleep_m / 60.0), 2)
 
         # Prawa kolumna przechowująca wartośći obciążenia i aktywności
         with col3:

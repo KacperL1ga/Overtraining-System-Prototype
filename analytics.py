@@ -36,12 +36,13 @@ def input_features_table(user_id: str, current_data: dict):
     else:
         df_combined = df_current
 
-    # Usuwanie duplikaty daty z zachowaniem najnowszego wpisu
-    df_combined = df_combined.drop_duplicates(subset = ['date'], keep = 'last')
+    if 'date' in df_combined.columns:
+        # Usuwanie duplikaty daty z zachowaniem najnowszego wpisu
+        df_combined = df_combined.drop_duplicates(subset = ['date'], keep = 'last')
 
-    # Sortowanie danych chronologiczne wedlug daty
-    df_combined['date'] = pd.to_datetime(df_combined['date'])
-    df_combined = df_combined.sort_values(by = 'date')
+        # Sortowanie danych chronologiczne wedlug daty
+        df_combined['date'] = pd.to_datetime(df_combined['date'])
+        df_combined = df_combined.sort_values(by = 'date')
 
     # Obliczanie średnich z ostatniego tygodnia
     recent_7 = df_combined.tail(7)

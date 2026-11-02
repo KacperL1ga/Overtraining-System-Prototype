@@ -301,7 +301,6 @@ def chart_strain_group (df: pd.DataFrame):
 
     st.plotly_chart(fig, width = 'stretch')
 
-# TO DO Wykonanie wykresu dla ACWR
 def chart_acwr(df:pd.DataFrame):
 
     # Jeżeli w tabeli nie ma danych zwracam odpowiedni komunikat
@@ -334,7 +333,7 @@ def chart_acwr(df:pd.DataFrame):
         opacity = 0.15,                             # Stopień przeźroczystości
         layer = "below",                            # Rysuje prostokąt pod wykresem
         line_width = 0,                             # Grubość obramowania
-        annotation_text = "🔵 Niska aktywnosc (0.0 - 0.8)",  # Tekst wewnątrz strefy
+        annotation_text = "🔵 Niska aktywność (0.0 - 0.8)",  # Tekst wewnątrz strefy
         annotation_position = "top left",           # Pozycja tekstu
     )
 
@@ -397,9 +396,9 @@ def charts_tab_section(df_history: pd.DataFrame):
     df_history = df_history.sort_values('date')
     df_history['acute_strain'] = df_history['day_strain'].rolling(window = 7, min_periods = 1).mean()
     df_history['chronic_strain'] = df_history['day_strain'].rolling(window = 28, min_periods = 1).mean()
-    df_history['acwr'] = df_history['acute_strain'] / df_history['chronic_strain'].fillna(1.0)
+    df_history['acwr'] = (df_history['acute_strain'] / df_history['chronic_strain']).fillna(1.0)
 
-    # Filtrowanie po dacie TO DO
+    # Filtrowanie po dacie
     df_filtred = apply_data_filter(df_history)
 
     # Zabezpieczenie gdyby nie udalo sie pozyskac danych
@@ -408,6 +407,7 @@ def charts_tab_section(df_history: pd.DataFrame):
         return
 
     st.divider()
+    st.markdown("Dostępne wykresy graficzne zestawień z bazy pomiarów.")
 
     # Tworzymy zakladni przechowujace nasze wykresy
     tab_hrv_rhr, tab_sleep, tab_strain, tab_acwr = st.tabs([

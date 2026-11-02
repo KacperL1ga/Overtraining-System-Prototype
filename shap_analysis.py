@@ -10,11 +10,11 @@ polish_feature = {
     'rhr_baseline': 'Norma bazowa RHR',
     'hrv_deviation': 'Odchylenie HRV',
     'rhr_deviation': 'Odchylenie RHR',
-    'hrv_7d_mean': 'Średnie HRV (7 dni) ',
-    'rhr_7d_mean': 'Średnia RHR (7 dni)',
+    'hrv_7d_mean': 'Średnie HRV (7 dni)',
+    'rhr_7d_mean': 'Średnie RHR (7 dni)',
     'sleep_hours': 'Czas snu',
-    'sleep_hours_7d_mean': 'Średnia czas snu (7 dni)',
-    'sleep_efficiency': 'Efektywnosc snu',
+    'sleep_hours_7d_mean': 'Średni czas snu (7 dni)',
+    'sleep_efficiency': 'Efektywność snu',
     'deep_sleep_hours': 'Sen głęboki',
     'rem_sleep_hours': 'Sen REM',
     'day_strain': 'Obciążenie dnia',
@@ -26,9 +26,9 @@ polish_feature = {
 
 def shap_section(model, input_data: pd.DataFrame):
     st.subheader("Dlaczego taki wynik? Analiza SHAP")
-    st.caption("Wyjaśnienie, które z wprowadzanych parametrów miały znaczący wpływ na Revovery Score")
+    st.caption("Wyjaśnienie, które z wprowadzanych parametrów miały znaczący wpływ na Recovery Score")
 
-    # Inicjalizacja TreeExplainera od SHAP i wyliczanie wartości SHAP
+    # Inicjalizacja TreeExplainer'a od SHAP i wyliczanie wartości SHAP
     explainer = shap.TreeExplainer(model)
     shap_values = explainer(input_data)
 
@@ -56,22 +56,22 @@ def shap_section(model, input_data: pd.DataFrame):
                 feature_name = polish_feature.get(row['features'], row['features'])
                 st.metric(
                     label = feature_name,                   # Nazwa cechy
-                    value = f"{val:.1f}",                   # Wartosć cechy z formularza
+                    value = f"{val:.1f}",                   # Wartość cechy z formularza
                     delta = f"+{row['shap_values']:.2f}"    # Wpływ SHAP w procentach
                 )
 
     with col_minus:
         st.markdown("**📉 Top 3 parametry pogarszające wynik**")
         if df_minus.empty:
-            st.info("Brak parametrów o wyraźnie negatywnym  wpływie")
+            st.info("Brak parametrów o wyraźnie negatywnym wpływie")
         else:
             for _, row in df_minus.iterrows():
                 val = input_data[row['features']].values[0]
-                # Podmiana nazwy kolumny na polski odpowiednik lub pozostawienie oryginału (klucz, wartosc)
+                # Podmiana nazwy kolumny na polski odpowiednik lub pozostawienie oryginału (klucz, wartość)
                 feature_name = polish_feature.get(row['features'], row['features'])
                 st.metric(
                     label = feature_name,                   # Nazwa cechy
-                    value = f"{val:.1f}",                   # Wartosć cechy z formularza
+                    value = f"{val:.1f}",                   # Wartość cechy z formularza
                     delta = f"{row['shap_values']:.2f}"     # Wpływ SHAP w procentach
                 )
 
@@ -80,14 +80,14 @@ def shap_section(model, input_data: pd.DataFrame):
 
         st.markdown("""
                 ### 📖 Jak czytać wykres wodospadowy?
-                * **📊 Oś pozioma $f(x)$**: Wynik regeneracji wyrazony w punktach procentowych.
+                * **📊 Oś pozioma $f(x)$**: Wynik regeneracji wyrażony w punktach procentowych.
                 * **🎯 Wartość bazowa $E[f(x)]$**: średni wynik regeneracji w bazie danych.
                 * **🔴 Kolor czerwony**: Paski skierowane w prawo - cechy które **podniosły** wartość.
                 * **🔵 Kolor niebieski**: Paski skierowane w lewo - cechy które **obniżyły** wartość.
                 * **🏷️ Wartości przy słupkach ($+X.XX$ / $-X.XX$)**: Dokładna liczba punktów dodanych / odjętych przez dany parametr.
                 """)
 
-        # Tworzymy nowa kartę
+        # Tworzymy nową kartę
         fig, ax = plt.subplots(figsize = (8, 5))
 
         # Rysujemy wykres wodospadowy bez wyświetlania w oknie

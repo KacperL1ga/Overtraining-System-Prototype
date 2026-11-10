@@ -51,7 +51,7 @@ def save_daily_logs(data: dict):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
-    # Komenda SQL do zmian w wartosciach, dzieki kluczom ze slowinika
+    # Komenda SQL do zmian w wartosciach, dzieki kluczom ze słownika
     sql = '''
         INSERT OR REPLACE INTO daily_logs (
             user_id, date,
@@ -103,7 +103,7 @@ def get_all_users() -> list:
     sql = "SELECT DISTINCT user_id FROM daily_logs ORDER BY user_id ASC"
     cursor.execute(sql)
 
-    users = [row[0] for row in cursor.fetchall()] #
+    users = [row[0] for row in cursor.fetchall()] # Zwraca listę użytkowników jako krotkę
 
     conn.close()
     return users

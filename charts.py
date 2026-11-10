@@ -26,7 +26,7 @@ def apply_data_filter(df: pd.DataFrame) -> pd.DataFrame:
     if "chart_period" not in st.session_state:
         st.session_state.chart_period = "30"    # Domyślnie ustawiamy filtracje na 30 dni
 
-    # Zmiana stanu sesji po kliknięciu w odpowiedni przycisk
+    # Zmiana stanu sesji po kliknięciu odpowiedni przycisk
     if btn_7:
         st.session_state.chart_period = "7"
     if btn_30:
@@ -170,7 +170,7 @@ def chart_sleep_stacked(df: pd.DataFrame):
     fig.add_trace(
         go.Bar(
             x = df['date'],                 # oś pozioma - data
-            y = df['deep_sleep_hours'],     # oś pionowa - ilosc godziny snu głebokiego
+            y = df['deep_sleep_hours'],     # oś pionowa - ilość godziny snu głebokiego
             name = "Sen głęboki (h)",       # etykieta w legendzie
             marker_color = "#1f77b4",       # kolor słupka (błękitny)
             yaxis = "y1",                   # Przypisanie wartości do lewej osi y
@@ -181,7 +181,7 @@ def chart_sleep_stacked(df: pd.DataFrame):
     fig.add_trace(
         go.Bar(
             x = df['date'],                   # oś pozioma - data
-            y = df['rem_sleep_hours'],        # oś pionowa - ilosc godziny snu fazy REM
+            y = df['rem_sleep_hours'],        # oś pionowa - ilość godziny snu fazy REM
             name = "Sen REM (h)",             # etykieta w legendzie
             marker_color = "#9467bd",         # kolor słupka (fioletowy)
             yaxis = "y1",                     # Przypisanie wartości do lewej osi y
@@ -199,6 +199,7 @@ def chart_sleep_stacked(df: pd.DataFrame):
         )
     )
 
+    # Tworzymy część słupka odpowiedzialną za Efektywność Snu
     fig.add_trace(
         go.Scatter(
             x = df['date'],                 # oś pozioma - data
@@ -234,7 +235,7 @@ def chart_sleep_stacked(df: pd.DataFrame):
     st.plotly_chart(fig, width = 'stretch')
 
 def chart_strain_group (df: pd.DataFrame):
-    # Jeżeli w tabeli nie ma danych zwracam odpowiedni komunikat
+    # Jeżeli w tabeli nie ma danych zwracamy odpowiedni komunikat
     if df.empty:
         st.info("Brak danych.")
         return
@@ -249,7 +250,7 @@ def chart_strain_group (df: pd.DataFrame):
         go.Bar(
             x = df['date'],                   # oś pozioma - data
             y = df['day_strain'],             # oś pionowa - obciążenie dnia
-            name = "Obciążenie Dnia",              # etykieta w legendzie
+            name = "Obciążenie Dnia",         # etykieta w legendzie
             marker_color = "#eb9b54",         # kolor słupka (jasny pomarańczowy)
             yaxis = "y1",                     # Przypisanie wartości do lewej osi y
         )
@@ -259,13 +260,14 @@ def chart_strain_group (df: pd.DataFrame):
     fig.add_trace(
         go.Bar(
             x = df['date'],                     # oś pozioma - data
-            y = df['activity_strain'],          # oś pionowa - ilosc godziny snu lekkiego
+            y = df['activity_strain'],          # oś pionowa - ilość godziny snu lekkiego
             name = "Obciążenie Treningowe",     # etykieta w legendzie
             marker_color = "#d35400",           # kolor słupka (ciemny pomarańcz)
             yaxis = "y1",                       # Przypisanie wartości do lewej osi y
         )
     )
 
+    # Tworzymy linie i punkty odpowiedzialne za Wskaźnik Regeneracji
     fig.add_trace(
         go.Scatter(
             x = df['date'],                   # oś pozioma - data
@@ -273,8 +275,8 @@ def chart_strain_group (df: pd.DataFrame):
             mode = 'lines + markers',         # lines - linie | markers - punkty
             name = "Wartość regeneracji (%)", # etykieta w legendzie
             line = dict(
-                color = "#2ecc71",            # Kolor lini (zielony)
-                width = 3                     # Grubość lini
+                color = "#2ecc71",            # Kolor linii (zielony)
+                width = 3                     # Grubość linii
             ),
             yaxis = "y2",                     # Przypisujemy wartości do prawej strony
         )
@@ -288,7 +290,7 @@ def chart_strain_group (df: pd.DataFrame):
         yaxis = dict(
             title = "Obciążenie (0-21)",              # Nazwa lewej osi pionowej
             side = "left",                            # Ustawienie po lewej stronie wykresu
-            range = [0, 21],                          # Na sztyno ustawione limity
+            range = [0, 21],                          # Na sztywno ustawione limity
         ),
         yaxis2 = dict(
             title = "Wskaźnik regeneracji (%)",       # Nazwa prawej osi pionowej
@@ -319,13 +321,13 @@ def chart_acwr(df:pd.DataFrame):
             mode = 'lines + markers',               # 'lines' - linie | 'markers' - punkty
             name = 'ACWR',                          # etykieta w legendzie
             line = dict(
-                color = "#1f77b4",                  # Kolor lini (błękitny)
-                width = 2                           # Grubość lini
+                color = "#1f77b4",                  # Kolor linii (błękitny)
+                width = 2                           # Grubość linii
             )
         )
     )
 
-    # Dodajemy wypełnienie tła ilustrujacego mała ilość wysiłków
+    # Dodajemy wypełnienie tła ilustrującego mała ilość wysiłków
     fig.add_hrect(
         y0 = 0.0,                                   # Dolna granica strefy
         y1 = 0.8,                                   # Górna granica strefy
@@ -337,7 +339,7 @@ def chart_acwr(df:pd.DataFrame):
         annotation_position = "top left",           # Pozycja tekstu
     )
 
-    # Dodajemy wypełnienie tła ilustrujacego idealne warunki do mocniejszych treningów
+    # Dodajemy wypełnienie tła ilustrującego idealne warunki do mocniejszych treningów
     fig.add_hrect(
         y0 = 0.8,                                   # Dolna granica strefy
         y1 = 1.3,                                   # Górna granica strefy
@@ -349,7 +351,7 @@ def chart_acwr(df:pd.DataFrame):
         annotation_position = "top left",           # Pozycja tekstu
     )
 
-    # Dodajemy wypełnienie tła ilustrujacego początki przetrenowania
+    # Dodajemy wypełnienie tła ilustrującego początki przetrenowania
     fig.add_hrect(
         y0 = 1.3,                                   # Dolna granica strefy
         y1 = 1.5,                                   # Górna granica strefy
@@ -361,7 +363,7 @@ def chart_acwr(df:pd.DataFrame):
         annotation_position = "top left",           # Pozycja tekstu
     )
 
-    # Dodajemy wypełnienie tła ilustrujacego ryzyko kontuzji
+    # Dodajemy wypełnienie tła ilustrującego ryzyko kontuzji
     fig.add_hrect(
         y0 = 1.5,                                   # Dolna granica strefy
         y1 = 3.0,                                   # Górna granica strefy
@@ -376,8 +378,8 @@ def chart_acwr(df:pd.DataFrame):
     #
     fig.update_layout(
         title = "Zachowanie wskaźnika ACWR",          # Tytuł wykresu
-        xaxis_title = "Data",                         # Nazwa lini pionowej
-        yaxis_title = "Wskaźnik ACWR",                # Nazwa lini poziomej
+        xaxis_title = "Data",                         # Nazwa linii pionowej
+        yaxis_title = "Wskaźnik ACWR",                # Nazwa linii poziomej
         hovermode = "x unified",                      # Pokazuje wartość po najechaniu
     )
 
@@ -401,7 +403,7 @@ def charts_tab_section(df_history: pd.DataFrame):
     # Filtrowanie po dacie
     df_filtred = apply_data_filter(df_history)
 
-    # Zabezpieczenie gdyby nie udalo sie pozyskac danych
+    # Zabezpieczenie, gdyby nie udalo się pozyskać danych
     if df_filtred.empty:
         st.warning("Brak danych w wybranym przedziale czasu")
         return

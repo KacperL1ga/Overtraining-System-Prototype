@@ -1,7 +1,7 @@
 import pandas as pd
-
 from database import get_user_history
 
+# Funkcja do wyliczania baseline i odchyleń
 def calculate_baseline_deviation(user_id: str, curr_hrv: float, curr_rhr: float):
     # Pobieranie historii danego uzytkownika z bazy
     df_history = get_user_history(user_id)
@@ -24,23 +24,54 @@ def calculate_baseline_deviation(user_id: str, curr_hrv: float, curr_rhr: float)
     # Zwracamy odchylenia do dalszych obliczeń oraz baseline do zapisu w bazie
     return hrv_deviation, rhr_deviation, hrv_baseline, rhr_baseline
 
-def input_features_table(user_id: str, current_data: dict):
-    # Pobieranie historii danego użytkownika z bazy danych
+# Funkcja służąca obliczaniu stosunku ACWR
+def calculate_acwr(user_id: str, curr_day_strain: float) -> float:
+    df_history = get_user_history(user_id)              # Pobieranie historii pomiarów
 
+    # Pobranie historii z walidacją brakujących wierszy
+    if not df_history.empty and 'day_strain' in df_history.columns:
+        past_strain = df_history['day_strain'].dropna().tolist()
+    else:
+        past_strain = []
+
+    # Dołączenie aktualnego day_strain do zestawienia
+    past_strain.append(curr_day_strain)
+    all_strain = pd.Series(past_strain)
+
+    acute_strain = all_strain.tail(7).mean()            # Obciążenie ostre - średnia z 7 dni
+    chronic_strain = all_strain.tail(28).mean()         # Obciążenie przewlekłe - średnia z 28 dni
+
+    acwr = acute_strain / chronic_strain if chronic_strain > 0 else 1.0
+    return round(float(acwr), 2)                        # Wynik zaokrąglamy do 2 miejsc po przecinku
+
+# Intepretacja wyników ACWR
+def interpret_acwr(acwr_value: float):
+    if acwr_value < 0.8:
+        return "Zbyt mało treningów", "info", "🔵"
+    elif acwr_value <= 1.3:
+        return "Optymalne obciążenie", "success", "🟢"
+    elif acwr_value <= 1.5:
+        return "Ostrzeżenie (wysokie obciążenie)", "warning", "🟡"
+    else:
+        return "Wysokie ryzyko przetrenowania!", "error", "🔴"
+
+# Przetwarzanie cech do tabeli dla modelu uczącego
+def input_features_table(user_id: str, current_data: dict) -> pd.DataFrame:
+    # Pobieranie historii danego użytkownika z bazy danych
     df_history = get_user_history(user_id)
     df_current = pd.DataFrame([current_data])
 
-    # Połącznie danych historycznych z dzisiejszymi
+    # Połączenie danych historycznych z dzisiejszymi
     if not df_history.empty:
         df_combined = pd.concat([df_history, df_current], ignore_index = True)
     else:
         df_combined = df_current
 
     if 'date' in df_combined.columns:
-        # Usuwanie duplikaty daty z zachowaniem najnowszego wpisu
+        # Usuwanie duplikatów daty z zachowaniem najnowszego wpisu
         df_combined = df_combined.drop_duplicates(subset = ['date'], keep = 'last')
 
-        # Sortowanie danych chronologiczne wedlug daty
+        # Sortowanie danych chronologiczne według daty
         df_combined['date'] = pd.to_datetime(df_combined['date'])
         df_combined = df_combined.sort_values(by = 'date')
 
@@ -50,14 +81,15 @@ def input_features_table(user_id: str, current_data: dict):
     rhr_7d_mean = recent_7['resting_heart_rate'].mean()
     sleep_hours_7d_mean = recent_7['sleep_hours'].mean()
 
-    # Wektor 18 cech przeznaczony do trenowania w modelu
+    # Wyliczenie stosunku ACWR
+    acwr_val = calculate_acwr(user_id, current_data['day_strain'])
+
+    # Wektor 19 cech przeznaczony do trenowania i predykcji w modelu
     feature_dict = {
         'hrv': current_data['hrv'],
         'hrv_7d_mean': hrv_7d_mean,
         'resting_heart_rate': current_data['resting_heart_rate'],
         'rhr_7d_mean': rhr_7d_mean,
-        'hrv_baseline': current_data['hrv_baseline'],
-        'rhr_baseline': current_data['rhr_baseline'],
         'skin_temp_deviation': current_data['skin_temp_deviation'],
         'hrv_deviation': current_data['hrv_deviation'],
         'rhr_deviation': current_data['rhr_deviation'],
@@ -70,35 +102,6 @@ def input_features_table(user_id: str, current_data: dict):
         'activity_strain': current_data['activity_strain'],
         'calories_burned': current_data['calories_burned'],
         'workout_completed': current_data['workout_completed'],
+        'acwr': acwr_val
     }
     return pd.DataFrame([feature_dict])
-
-# Funkcja służąca obliczaniu stosunku ACWR
-def calculate_acwr(user_id: str, curr_day_strain: float) -> float:
-    df_history = get_user_history(user_id)
-
-    # Pobranie historii z walidacją brakujących wierszy
-    if not df_history.empty and 'day_strain' in df_history.columns:
-        past_strain = df_history['day_strain'].dropna().tolist()
-    else:
-        past_strain = []
-
-    # Dołącznie aktualnego day_strain do zestawienia
-    past_strain.append(curr_day_strain)
-    all_strain = pd.Series(past_strain)
-
-    acute_strain = all_strain.tail(7).mean()            # Obciążenie ostre - srednia z 7 dni
-    chronic_strain = all_strain.tail(28).mean()         # Obciążenie przewlekłe - srednia z 28 dni
-
-    acwr = acute_strain / chronic_strain if chronic_strain > 0 else 1.0
-    return round(acwr, 2)       # Wynik zaokrąglamy do 2 miejsc po przecinku
-
-def interpret_acwr(acwr_value: float):
-    if acwr_value < 0.8:
-        return "Zbyt mało treningów", "info", "🔵"
-    elif acwr_value <= 1.3:
-        return "Optymalne obciążenie", "success", "🟢"
-    elif acwr_value <= 1.5:
-        return "Ostrzeżenie (wysokie obciążenie)", "warning", "🟡"
-    else:
-        return "Wysokie ryzyko przetrenowania!", "error", "🔴"

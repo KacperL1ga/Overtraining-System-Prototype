@@ -185,7 +185,7 @@ def show_edit_dialog(user_id: str, action_date, model):
             delta = f"{new_score - old_score:+.2f}% względem poprzedniego"
         )
 
-        time.sleep(2) # Po 3 sekundach następuje przeładowanie strony
+        time.sleep(3) # Po 3 sekundach następuje przeładowanie strony
         st.rerun()
 
 @st.dialog("⚠️ Potwierdzenie usunięcia")
@@ -196,9 +196,9 @@ def show_delete_dialog(user_id: str, action_date):
 
     with col1:
         if st.button("Tak, usuń", type = "primary", width = "stretch"):
-            delete_daily_log(user_id, str(action_date))
+            delete_daily_log(user_id, str(action_date))     # Wywołanie funkcji do usunięcia pomiarów
             st.success("Wpis został usunięty!")
-            time.sleep(1)
+            time.sleep(2)   # Po 2 sekundach następuje przeładowanie strony
             st.rerun()
 
     with col2:
@@ -214,9 +214,9 @@ def show_delete_profile_dialog(user_id: str):
 
     with col1:
         if st.button("Tak, usuń wszystko", type = "primary", width = "stretch"):
-            delete_users_profile(user_id)
+            delete_user_profile(user_id)        # Wywołanie funkcji do usunięcia profilu
             st.success("Profil został usunięty!")
-            time.sleep(1)
+            time.sleep(2)   # Po 2 sekundach następuje przeładowanie strony
             st.rerun()
 
     with col2:
@@ -236,9 +236,9 @@ def show_rename_profile_dialog(old_user_id: str):
             elif new_name == old_user_id:
                 st.warning("Nowa nazwa jest identyczna jak obecna.")
             else:
-                rename_user_profile(old_user_id, new_name)
+                rename_user_profile(old_user_id, new_name)      # Wywołanie funkcji do zmiany nazwy profilu
                 st.success("Nazwa została zmieniona!")
-                time.sleep(1)
+                time.sleep(2)   # Po 2 sekundach następuje przeładowanie strony
                 st.rerun()
 
     with col2:

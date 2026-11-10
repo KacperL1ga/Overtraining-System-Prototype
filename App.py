@@ -24,7 +24,7 @@ st.set_page_config(
 # Wczytanie zapisanego modelu z pamięci podręcznej
 @st.cache_resource
 def load_model():
-    return joblib.load('xgb_model.pkl')
+    return joblib.load('recovery_model.pkl')
 
 model = load_model()
 
@@ -47,7 +47,7 @@ with st.sidebar:
     # Lista rozwijana z profilami do wyboru
     selected_option = st.selectbox("Wybierz profil:", options)
 
-    # W przypadku wyboru opcji do tworzenia możemy wpisać nową nazwę, ktora poddna jest usuwaniu białych znaków
+    # W przypadku wyboru opcji do tworzenia możemy wpisać nową nazwę, która poddana jest usuwaniu białych znaków
     if selected_option == "➕ Dodaj nowy profil":
         new_name = st.text_input("Wpisz nazwę nowego użytkownika: ", max_chars = 30).strip()
 
@@ -81,10 +81,10 @@ with st.sidebar:
 st.write(f"Witaj, **{user_id}**! 👋")
 st.divider()
 
-# Pobranie histori z bazy danych dla aktualnego użytkownika
+# Pobranie historii z bazy danych dla aktualnego użytkownika
 df_history = get_user_history(user_id)
 
-# Sprawdzenie warunku czy użytkownik ma w bazie przynajmniej 3 wpisy
+# Sprawdzenie warunku, czy użytkownik ma w bazie przynajmniej 3 wpisy
 if len(df_history) < 3:
     st.info("Zanim zaczniesz korzystać z kalkulatora, musisz ustalić swoje wstępne Baseline. Wprowadź parametry z ostatnich 3 dni.")
 
@@ -98,30 +98,28 @@ if len(df_history) < 3:
         today = date.today()
         with col_d1:
             st.markdown("Dzień 1")
-            date1 = st.date_input(
-                                    "Data (Dzień 1)",
+            date1 = st.date_input(  "Data (Dzień 1)",
                                     value = today - timedelta(days = 2),
                                     max_value = today
-            )
-            hrv1 = st.number_input("HRV (Dzień 1)",
-                                   min_value = 10.0,
-                                   max_value = 250.0,
-                                   value = 75.0,
-                                   step = 1.0
-                                   )
-            rhr1 = st.number_input("RHR (Dzień 1)",
-                                   min_value = 10.0,
-                                   max_value = 250.0,
-                                   value = 75.0,
-                                   step = 1.0
-                                   )
+                                    )
+            hrv1 = st.number_input( "HRV (Dzień 1)",
+                                    min_value = 10.0,
+                                    max_value = 250.0,
+                                    value = 75.0,
+                                    step = 1.0
+                                    )
+            rhr1 = st.number_input( "RHR (Dzień 1)",
+                                    min_value = 10.0,
+                                    max_value = 250.0,
+                                    value = 75.0,
+                                    step = 1.0
+                                    )
         with col_d2:
             st.markdown("Dzień 2")
-            date2 = st.date_input(
-                                    "Data (Dzień 2)",
+            date2 = st.date_input(  "Data (Dzień 2)",
                                     value = today - timedelta(days = 1),
                                     max_value = today
-            )
+                                    )
             hrv2 = st.number_input("HRV (Dzień 2)",
                                    min_value = 10.0,
                                    max_value = 250.0,
@@ -136,11 +134,10 @@ if len(df_history) < 3:
                                    )
         with col_d3:
             st.markdown("Dzień 3")
-            date3 = st.date_input(
-                                    "Data (Dzień 3)",
+            date3 = st.date_input( "Data (Dzień 3)",
                                     value = today,
                                     max_value = today
-            )
+                                    )
             hrv3 = st.number_input("HRV (Dzień 3)",
                                    min_value = 10.0,
                                    max_value = 250.0,
@@ -155,15 +152,15 @@ if len(df_history) < 3:
                                    )
 
         # Przycisk do zatwierdzenia formularza
-        submitted = st.form_submit_button("Aktualizacja bazy danych", type="primary")
+        submitted = st.form_submit_button("Aktualizacja bazy danych", type = "primary")
 
         if submitted:
 
-            # Walidacja danych, sprawdzanie czy daty idą rosnąco i chronologicznie
+            # Walidacja danych, sprawdzanie, czy daty idą rosnąco i chronologicznie
             if not (date1 < date2 < date3):
                 st.error("Błąd: Daty muszą iść w porządku chronologicznym i bez powtarzania!")
 
-            # Walidacja danych, sprawdzanie czy odstęp pomiędzy Dzień1 i Dzień3 nie są zbyt odległe
+            # Walidacja danych, sprawdzanie, czy odstęp pomiędzy Dzień1 i Dzień3 nie są zbyt odległe
             elif (date3 - date1).days > 7:
                 st.error("Błąd: Wpisane dane nie mogą być na przestrzeni większej niż 7 dni!")
 
@@ -191,8 +188,24 @@ if len(df_history) < 3:
                 data3.update({"date": date3, "hrv": hrv3, "resting_heart_rate": rhr3})
                 save_daily_logs(data3)
 
-                st.success("Gotowe! Można teraz odświeżyć stronę aby używać pełnego kalkulatora")
-                time.sleep(1)
+                # Po zapisaniu 3 wpisów obliczamy baseline na ich podstawie i wyświetlamy użytkownikowi
+                baseline_result = calculate_baseline_deviation(user_id, hrv3, rhr3)
+                if baseline_result is not None:
+                    _, _, hrv_bl, rhr_bl = baseline_result
+                    data3.update({
+                        "hrv_baseline": hrv_bl,
+                        "rhr_baseline": rhr_bl,
+                    })
+                    save_daily_logs(data3)
+                    st.success("✅ Dane zostały zapisane! Twój wstępny baseline:")
+                    col_bl1, col_bl2 = st.columns(2)
+                    with col_bl1:
+                        st.metric("HRV Baseline", f"{hrv_bl:.1f} ms")
+                    with col_bl2:
+                        st.metric("RHR Baseline", f"{rhr_bl:.1f} bpm")
+                else:
+                    st.success("Gotowe! Odświeżanie strony aby używać pełnego kalkulatora")
+                time.sleep(4)
                 st.rerun()
 
 else:
@@ -330,7 +343,7 @@ else:
                                           )
 
     # Automatyczne wyznaczanie odbytego treningu na podstawie obciążenia treningowego
-    workout_completed = 1 if activity_strain > 0 else 0
+    workout_completed = 1 if activity_strain >= 4 else 0
 
     result = calculate_baseline_deviation(user_id, hrv, rhr)
 
@@ -357,16 +370,16 @@ else:
             'workout_completed': workout_completed
         }
 
-        # Checkbox z zgodą na zapis parametrów do bazy
+        # Checkbox ze zgodą na zapis parametrów do bazy
         save_do_db = st.checkbox("Chcę zapisać powyższe parametry do historii pomiarów", value = True)
 
-        # Funkcja dodająca 3 parametry średnich i przygotowująca Tabele do precykcji w modelu
+        # Funkcja dodająca 3 parametry średnich i przygotowująca Tabele do predykcji w modelu
         input_data = input_features_table(user_id, current_data)
 
         # Przycisk akcji i wyświetlanie wyniku
         if st.button("Wyznacz wskaźnik regeneracji", type = "primary", width = "stretch"):
 
-            # Walidacja wprowadzanych danych aby uniknąć wpisów z tą sama data
+            # Walidacja wprowadzanych danych, aby uniknąć wpisów z tą sama data
             df_history = get_user_history(user_id)
             date_exist = False
             if not df_history.empty and 'date' in df_history.columns:
@@ -452,9 +465,9 @@ else:
             # Kafelki podsumowujące
             col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
 
-            total_records = len(df_history)     # Liczba wszystkich wpisów
+            total_records = len(df_history)                                 # Liczba wszystkich wpisów
             avg_rec_score = df_history['recovery_score'].dropna().mean()    # Średnia wartość regeneracji
-            latest_row = df_history.iloc[0]
+            latest_row = df_history.iloc[0]                                 # Data ostatniego wpisu
             latest_score = latest_row['recovery_score'] if pd.notnull(latest_row.get('recovery_score')) else 0.0
 
             with col_kpi1:
@@ -476,11 +489,11 @@ else:
 
             # Filtrowanie
             mask = (df_history['date'].dt.date >= start_date) & (df_history['date'].dt.date <= end_date)
-            df_filtred = df_history.loc[mask].copy()
+            df_filtered = df_history.loc[mask].copy()
 
             # Formatowanie daty do wyświetlenia
-            df_filtred['date'] = df_filtred['date'].dt.strftime('%Y-%m-%d')
-            st.dataframe(df_filtred, width = "stretch")
+            df_filtered['date'] = df_filtered['date'].dt.strftime('%Y-%m-%d')
+            st.dataframe(df_filtered, width = "stretch")
 
             # Sekcja modtfikacji danych
             st.markdown("**🛠️ Modyfikacja wybranego wpisu**")

@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import shap
 import matplotlib.pyplot as plt
 
@@ -21,18 +22,38 @@ polish_feature = {
     'activity_strain': 'Obciążenie treningowe',
     'calories_burned': 'Spalone kalorie',
     'skin_temp_deviation': 'Odchylenie temp. ciała',
-    'workout_completed': 'Trening wykonany'
+    'workout_completed': 'Trening wykonany',
+    'acwr': 'Wskaźnik obciążenia (ACWR)'
 }
 
 def shap_section(model, input_data: pd.DataFrame):
     st.subheader("Dlaczego taki wynik? Analiza SHAP")
     st.caption("Wyjaśnienie, które z wprowadzanych parametrów miały znaczący wpływ na Recovery Score")
 
-    # Inicjalizacja TreeExplainer'a od SHAP i wyliczanie wartości SHAP
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer(input_data)
+    # Wyliczanie wartości SHAP dla modelu Ridge w Pipeline
+    # Pipeline składa się z dwóch kroków: 'scaler' (StandardScaler) i 'ridge' (Ridge)
+    scaler = model.named_steps['scaler']        # Wyciągamy scaler żeby odczytać mean_ i scale_ z treningu
+    ridge = model.named_steps['ridge']          # Wyciągamy Ridge żeby odczytać coef_ (współczynniki) i intercept_ (wyraz wolny)
 
-    # Utworzenie tabeli łączącej nazwy column z wartościami od SHAP
+    x_vals = input_data.values                  # Surowe wartości wejściowe jako tablica numpy (1 wiersz x 19 cech)
+
+    # Obliczamy o ile każda cecha odchyla się od średniej treningowej
+    # Jest to dokładnie to, co robi StandardScaler przy predict
+    scaled_diff = (x_vals - scaler.mean_) / scaler.scale_
+
+    # Wartość SHAP każdej cechy = jej skalowane odchylenie * współczynnik Ridge
+    # Dla modelu liniowego to wzór: phi_i = (x_i - mean_i) / scale_i * coef_i
+    phi = scaled_diff * ridge.coef_
+
+    # Budujemy obiekt Explanation przyjmowany przez wykresy SHAP
+    shap_values = shap.Explanation(
+        values = phi,
+        base_values = np.array([ridge.intercept_]),     # Wartość bazowa – punkt startowy przed dodaniem wpływu cech
+        data = x_vals,                                  # Oryginalne (niestandaryzowane) wartości – wyświetlane na wykresie
+        feature_names = list(input_data.columns)        # Nazwy kolumn zgodne z wektorem 19 cech
+    )
+
+    # Utworzenie tabeli łączącej nazwy kolumn z wartościami od SHAP
     df_shap = pd.DataFrame({
         'features': input_data.columns,
         'shap_values': shap_values.values[0]
@@ -52,12 +73,12 @@ def shap_section(model, input_data: pd.DataFrame):
         else:
             for _, row in df_plus.iterrows():
                 val = input_data[row['features']].values[0]
-                # Podmiana nazwy kolumny na polski odpowiednik lub pozostawienie oryginału (klucz, wartosc)
+                # Podmiana na polskie odpowiedniki
                 feature_name = polish_feature.get(row['features'], row['features'])
                 st.metric(
                     label = feature_name,                   # Nazwa cechy
                     value = f"{val:.1f}",                   # Wartość cechy z formularza
-                    delta = f"+{row['shap_values']:.2f}"    # Wpływ SHAP w procentach
+                    delta = f"+{row['shap_values']:.2f}"    # Wpływ wartości SHAP w procentach
                 )
 
     with col_minus:
@@ -67,17 +88,16 @@ def shap_section(model, input_data: pd.DataFrame):
         else:
             for _, row in df_minus.iterrows():
                 val = input_data[row['features']].values[0]
-                # Podmiana nazwy kolumny na polski odpowiednik lub pozostawienie oryginału (klucz, wartość)
+                # Podmiana na polskie odpowiedniki
                 feature_name = polish_feature.get(row['features'], row['features'])
                 st.metric(
                     label = feature_name,                   # Nazwa cechy
                     value = f"{val:.1f}",                   # Wartość cechy z formularza
-                    delta = f"{row['shap_values']:.2f}"     # Wpływ SHAP w procentach
+                    delta = f"{row['shap_values']:.2f}"     # Wpływ wartości SHAP w procentach
                 )
 
     # Rozwijana sekcja z pełnym wykresem wodospadowym SHAP
     with st.expander("Szczegółowy wykres wodospadowy", expanded = False):
-
         st.markdown("""
                 ### 📖 Jak czytać wykres wodospadowy?
                 * **📊 Oś pozioma $f(x)$**: Wynik regeneracji wyrażony w punktach procentowych.
@@ -89,12 +109,9 @@ def shap_section(model, input_data: pd.DataFrame):
 
         # Tworzymy nową kartę
         fig, ax = plt.subplots(figsize = (8, 5))
-
-        # Rysujemy wykres wodospadowy bez wyświetlania w oknie
+        # Rysujemy wykres wodospadowy
         shap.plots.waterfall(shap_values[0], show = False)
-
-        # Przekazanie do Streamlit aktualnie rysowaną figurę i wyświetlamy
+        # Przekazywanie do Streamlit wykres
         st.pyplot(plt.gcf())
-
-        # Czyszczenie pamięci podręcznej matplotlib
+        # Czyszczenie pamięci podręcznej
         plt.close()

@@ -2,16 +2,15 @@ import pytest
 import pandas as pd
 import numpy as np
 import joblib
-import sqlite3
-from analytics import interpret_acwr, calculate_acwr, calculate_baseline_deviation, input_features_table
-from database import save_daily_logs, get_user_history, delete_daily_log, delete_user_profile, rename_user_profile, get_all_users
+
+from analytics import interpret_acwr, calculate_acwr, input_features_table
+from database import save_daily_logs, get_user_history, delete_user_profile, rename_user_profile, get_all_users
 
 ### Testy jednostkowe - Analiza ACWR ###
 
 def test_interpret_acwr_zones():
-    # Sprawdzamy poprawnosc kategoryzacji wskaźnika ACWR
-
-    # Strefa 1: Niska aktywność (< 0.8)
+    # Sprawdzamy poprawność kategoryzacji wskaźnika ACWR
+    # Strefa 1: Niska aktywność (< 0,8)
     text, status, emoji = interpret_acwr(0.65)
     assert status == "info"
     assert emoji == "🔵"
@@ -46,7 +45,7 @@ def test_interpret_acwr_boundary_values():
 ### Testy jednostkowe — Wektor cech ###
 
 def test_input_features_table_structure():
-    # Upewnia się, że funkcja generuje dokładnie 18 cech wymaganych przez model XGBoost.
+    # Upewnia się, że funkcja generuje dokładnie 17 cech wymaganych przez model.
     mock_data = {
         'date': '2026-11-01',
         'hrv': 65.0,
@@ -65,19 +64,19 @@ def test_input_features_table_structure():
         'calories_burned': 2100,
         'workout_completed': 1
     }
+    # Dodaje do wektora 7-dniowe średnie i acwr
     df_out = input_features_table("test_user_dummy", mock_data)
 
-    # Model oczekuje dokładnie 18 kolumn
-    assert df_out.shape[1] == 18
+    # Model oczekuje dokładnie 17 kolumn
+    assert df_out.shape[1] == 17
     assert 'hrv_7d_mean' in df_out.columns
     assert 'rhr_7d_mean' in df_out.columns
     assert 'sleep_hours_7d_mean' in df_out.columns
+    assert 'acwr' in df_out.columns
     assert not df_out.isna().any().any(), "Wektor cech nie może zawierać wartości NaN!"
 
 
-
 ### Testy integracyjne - Baza danych ###
-
 @pytest.fixture
 def temp_user():
     # Fixture tworzący unikalnego użytkownika do testów i sprzątający po teście.
@@ -89,7 +88,6 @@ def temp_user():
 
 def test_database_crud_lifecycle(temp_user):
     # Testuje pełen cykl życia w bazie: zapis -> odczyt -> zmiana nazwy -> usunięcie.
-
     # 1. Zapis pomiaru
     log_entry = {
         "user_id": temp_user,
@@ -130,7 +128,7 @@ def test_database_crud_lifecycle(temp_user):
     assert len(get_user_history(new_name)) == 0
 
 def test_unique_constraint_overwrites_same_date(temp_user):
-    # Sprawdzamy, czy wpisanie pomiaru z tą samą datą nadpisuje rekord zamiast tworzyć duplikat.
+    # Sprawdzamy, czy wpisanie pomiaru z tą samą datą nadpisuje rekord, zamiast tworzyć duplikat.
     base_entry = {
         "user_id": temp_user,
         "date": "2026-11-01",
@@ -151,21 +149,19 @@ def test_unique_constraint_overwrites_same_date(temp_user):
     assert history.iloc[0]['recovery_score'] == 92.5
 
 
-
-### Testy integracyjne - model XGBoost ###
-
+### Testy integracyjne - model regeneracji ###
 def test_model_prediction_range_and_stability():
-    # Sprawdzamy, czy zapisany model xgb_model.pkl poprawnie przyjmuje dane i generuje wynik w granicach 0-100%.
-    model = joblib.load('xgb_model.pkl')
+    # Sprawdzamy, czy zapisany model poprawnie przyjmuje dane z 17 cechami i generuje wynik w granicach 0-100%.
+    model = joblib.load('recovery_model.pkl')
     mock_input = pd.DataFrame([{
         'hrv': 75.0, 'hrv_7d_mean': 72.0,
         'resting_heart_rate': 58.0, 'rhr_7d_mean': 59.0,
-        'hrv_baseline': 74.0, 'rhr_baseline': 58.0,
         'skin_temp_deviation': 0.0, 'hrv_deviation': 1.0, 'rhr_deviation': 0.0,
         'sleep_hours': 8.0, 'sleep_hours_7d_mean': 7.8, 'sleep_efficiency': 85.0,
         'deep_sleep_hours': 1.8, 'rem_sleep_hours': 1.7,
         'day_strain': 11.5, 'activity_strain': 7.0, 'calories_burned': 2200,
-        'workout_completed': 1
+        'workout_completed': 1,
+        'acwr': 1.05
     }])
     pred = model.predict(mock_input)[0]
     score = float(np.clip(pred, 0.0, 100.0))

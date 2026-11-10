@@ -1,6 +1,6 @@
 __pycache__
 .pytest_cache/
-model_experiment/
+models_experiment/
 .idea
 venv/
 .venv/

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import Ridge, Lasso, LinearRegression
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error, accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
@@ -111,11 +111,13 @@ X_val_scaled = scaler.transform(X_val)
 # ================================================
 models = {
     "Ridge (Liniowy)": (Ridge(alpha=0.01), True),
+    "Lasso (liniowy": (Lasso(alpha=0.01), True),
+    "Logistic Regression": (LinearRegression(), True),
     "MLP (Sieć Neuronowa)": (MLPRegressor(hidden_layer_sizes=(128, 64), max_iter=300, early_stopping=True, random_state=42), True),
-    "XGBoost": (XGBRegressor(max_depth=4, n_estimators=400, learning_rate=0.03, random_state=42, n_jobs=-1), False),
-    "Random Forest": (RandomForestRegressor(n_estimators=150, max_depth=12, random_state=42, n_jobs=-1), False),
-    "Extra Trees": (ExtraTreesRegressor(n_estimators=150, max_depth=12, random_state=42, n_jobs=-1), False),
-    "K-Nearest Neighbors": (KNeighborsRegressor(n_neighbors=15, n_jobs=-1), True)
+    # "XGBoost": (XGBRegressor(max_depth=4, n_estimators=400, learning_rate=0.03, random_state=42, n_jobs=-1), False),
+    # "Random Forest": (RandomForestRegressor(n_estimators=150, max_depth=12, random_state=42, n_jobs=-1), False),
+    # "Extra Trees": (ExtraTreesRegressor(n_estimators=150, max_depth=12, random_state=42, n_jobs=-1), False),
+    # "K-Nearest Neighbors": (KNeighborsRegressor(n_neighbors=15, n_jobs=-1), True)
 }
 
 # Pętla testująca

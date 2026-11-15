@@ -7,8 +7,6 @@ import matplotlib.pyplot as plt
 polish_feature = {
     'hrv': 'HRV (ms)',
     'resting_heart_rate': 'Tętno spoczynkowe (bpm)',
-    'hrv_baseline': 'Norma bazowa HRV',
-    'rhr_baseline': 'Norma bazowa RHR',
     'hrv_deviation': 'Odchylenie HRV',
     'rhr_deviation': 'Odchylenie RHR',
     'hrv_7d_mean': 'Średnie HRV (7 dni)',

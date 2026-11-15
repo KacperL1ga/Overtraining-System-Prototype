@@ -104,7 +104,7 @@ print(f" Zbiór Walidacji Końcowej (20% val):   {len(val_users)} użytkowników
 
 # Trenowanie modelu Ridge Pipeline i weryfikacja
 # ================================================
-print("Trenowanie modelu (17 CECH)")
+print("Trenowanie modelu (17 cech)")
 print("=" * 50)
 
 # Aby uniknąć wycieku informacji stosujemy Pipeline łącząc scalar z modelem
@@ -123,7 +123,7 @@ print(f"Model pomyślnie wytrenowany w czasie: {train_time:.3f} s")
 # Wyniki na wewnętrznym zbiorze testowym (z puli treningowej)
 preds_internal = model_ridge_pipeline.predict(X_test_internal)
 r2_internal = r2_score(y_test_internal, preds_internal)
-print(f"R2 Score na testowym wewnętrznym (pula dev): {r2_internal:.4f}")
+print(f"R2 Score na testowym wewnętrznym (pula treningowa): {r2_internal:.4f}")
 
 # Ostateczny test na zbiorze walidacyjnym (nowi użytkownicy z 20% walidacji)
 predictions = model_ridge_pipeline.predict(X_val)
@@ -136,7 +136,7 @@ rmse = np.sqrt(mean_squared_error(y_val, predictions))
 y_pred_zones = [get_zone(s) for s in predictions]
 accuracy = accuracy_score(y_val_zones, y_pred_zones)
 
-print(f"\nOstateczne wyniki modelu na zbiorze walidacyjnym (20% niewidzianych pomiarów ludzi):")
+print(f"\nOstateczne wyniki modelu na zbiorze walidacyjnym (20% niewidzianych użytkowników):")
 print(f" R2 Score:                      {r2:.4f}")
 print(f" Średni błąd bezwzględny (MAE): {mae:.2f} punktów")
 print(f" Pierwiastek błędu średn. (RMSE): {rmse:.2f} punktów")

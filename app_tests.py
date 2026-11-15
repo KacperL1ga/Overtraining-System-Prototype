@@ -29,7 +29,7 @@ def test_interpret_acwr_zones():
     assert "Ostrzeżenie" in text
 
     # Strefa 4: Zagrożenie kontuzją (> 1.5)
-    text, status, emoji = interpret_acwr(1.85)
+    text, status, emoji = interpret_acwr(1.50)
     assert status == "error"
     assert emoji == "🔴"
     assert "Wysokie ryzyko" in text
@@ -37,9 +37,9 @@ def test_interpret_acwr_zones():
 def test_interpret_acwr_boundary_values():
     # Sprawdza zachowanie na dokładnych granicach przedziałów.
     assert interpret_acwr(0.8)[1] == "success"   # 0.8 to już Sweet Spot
-    assert interpret_acwr(1.3)[1] == "success"   # 1.3 to jeszcze Sweet Spot
-    assert interpret_acwr(1.5)[1] == "warning"   # 1.5 to granica ostrzeżenia
-    assert interpret_acwr(1.51)[1] == "error"    # powyżej 1.5 to strefa czerwona
+    assert interpret_acwr(1.29)[1] == "success"   # 1.3 to jeszcze Sweet Spot
+    assert interpret_acwr(1.49)[1] == "warning"   # 1.5 to granica ostrzeżenia
+    assert interpret_acwr(1.50)[1] == "error"    # powyżej 1.5 to strefa czerwona
 
 
 ### Testy jednostkowe — Wektor cech ###

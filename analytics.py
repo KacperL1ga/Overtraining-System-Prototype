@@ -48,9 +48,9 @@ def calculate_acwr(user_id: str, curr_day_strain: float) -> float:
 def interpret_acwr(acwr_value: float):
     if acwr_value < 0.8:
         return "Zbyt mało treningów", "info", "🔵"
-    elif acwr_value <= 1.3:
+    elif acwr_value <= 1.29:
         return "Optymalne obciążenie", "success", "🟢"
-    elif acwr_value <= 1.5:
+    elif acwr_value <= 1.49:
         return "Ostrzeżenie (wysokie obciążenie)", "warning", "🟡"
     else:
         return "Wysokie ryzyko przetrenowania!", "error", "🔴"
@@ -84,7 +84,7 @@ def input_features_table(user_id: str, current_data: dict) -> pd.DataFrame:
     # Wyliczenie stosunku ACWR
     acwr_val = calculate_acwr(user_id, current_data['day_strain'])
 
-    # Wektor 19 cech przeznaczony do trenowania i predykcji w modelu
+    # Wektor 17 cech przeznaczony do trenowania i predykcji w modelu
     feature_dict = {
         'hrv': current_data['hrv'],
         'hrv_7d_mean': hrv_7d_mean,

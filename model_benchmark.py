@@ -63,7 +63,8 @@ features_cols = [
 ]
 
 # Czyszczenie wierszy z brakującymi danymi
-df_cleaned = df.dropna(subset=features_cols + ['recovery_score']).copy()
+df['Target_Recovery_Score'] = df['recovery_score'].shift(-1)
+df_cleaned = df.dropna(subset=features_cols + ['Target_Recovery_Score']).copy()
 
 ## Dwuetapowy podział danych (80/20 po użytkownikach)
 # ====================================================

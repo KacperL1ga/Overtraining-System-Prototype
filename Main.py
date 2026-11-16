@@ -62,9 +62,12 @@ features_cols = [
     'day_strain', 'activity_strain', 'calories_burned', 'workout_completed', 'acwr'  # Obciążenia, aktywność i ACWR
 ]
 
+# Cofnięcie Recovery_Score o dzień do tyłu aby model przewidywał wskaźnik regeneracji w oparciu o dzień poprzedni
+df['Target_Recovery_Score'] = df['recovery_score'].shift(-1)
+
 # Czyszczenie wierszy z brakującymi danymi
 print(f"Liczba wierszy przed czyszczeniem: {len(df)}")
-df_cleaned = df.dropna(subset=features_cols + ['recovery_score']).copy()
+df_cleaned = df.dropna(subset=features_cols + ['Target_Recovery_Score']).copy()
 print(f"Liczba wierszy po czyszczeniu: {len(df_cleaned)}")
 
 # Dwuetapowy podział danych (80/20 po użytkownikach)

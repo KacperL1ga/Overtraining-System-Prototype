@@ -1,6 +1,5 @@
 import pandas as pd
 
-from App import hrv_baseline, rhr_baseline
 from database import get_user_history
 
 # Funkcja do wyliczania baseline i odchyleń
@@ -25,7 +24,7 @@ def calculate_baseline_deviation(user_id: str, curr_hrv: float, curr_rhr: float,
 
     # Obliczamy baseline ze stałego okna dni poprzedzających
     if len(df_target_date) >= 30:                                    # Co miesiąc baseline jest aktualizowany jako średnia z 30 dni
-        hrv_baseline = df_target_date['hrv'].tail(30)['hrv'].mean()
+        hrv_baseline = df_target_date['hrv'].tail(30).mean()
         rhr_baseline = df_target_date['resting_heart_rate'].tail(30).mean()
     elif len(df_target_date) >= 3:
         hrv_baseline = df_target_date['hrv'].mean()

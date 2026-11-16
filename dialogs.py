@@ -186,10 +186,10 @@ def show_edit_dialog(user_id: str, action_date, model):
         df_to_recalc = df_history_after[df_history_after['date'] > pd.to_datetime(date_str)]
 
         for index, future_row in df_to_recalc.iterrows():
-            f_date_str = future_row['date']
+            f_date_str = str(future_row['date'].date())
 
             # Przeliczamy baseline ponownie dla każdego następnego dnia
-            res_f = calculate_baseline_deviation(user_id, future_row['hrv'], future_row['resting_hear_rate'], target_data = f_date_str)
+            res_f = calculate_baseline_deviation(user_id, future_row['hrv'], future_row['resting_heart_rate'], target_data = f_date_str)
 
             if res_f:
                 new_hrv_dev, new_rhr_dev, new_hrv_baseline, new_rhr_baseline = res_f
@@ -208,6 +208,7 @@ def show_edit_dialog(user_id: str, action_date, model):
                 new_new_score = floatt(np.clip(model.predict(new_input_data)[0], 0.0, 100.0))
 
                 new_current_data['recovery_score'] = new_new_score # Przypisujemy nowe wyliczenia
+                new_current_data['date'] = new_current_data['date'].strftime('%Y-%m-%d')
 
                 # Zapisujemy wszystko do bazy
                 save_daily_logs(new_current_data)

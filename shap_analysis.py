@@ -43,18 +43,61 @@ def shap_section(model, input_data: pd.DataFrame):
     # Dla modelu liniowego to wzór: phi_i = (x_i - mean_i) / scale_i * coef_i
     phi = scaled_diff * ridge.coef_
 
+    # Przygotowanie danych do zsumowania
+    feature_names = list(input_data.columns)
+    phi_values = list(phi[0])
+    raw_values = list(x_vals[0])
+
+    feat_idx = {name: idx for idx, name in enumerate(feature_names)}
+
+    # Definiowanie par do zsumowania: (cecha bazowa, odchylenie, nowa nazwa wyświetlana na ekranie)
+    pairs_to_combine = [
+        ('hrv', 'hrv_deviation', 'Zmiennosc rytmu serca'),
+        ('resting_heart_rate', 'rhr_deviation', 'Tętno spoczynkowe'),
+        ('day_strain', 'activity_strain', 'Obciązenie')
+    ]
+
+    for base_feat, dev_feat, new_name in pairs_to_combine:
+        if base_feat in feat_idx and dev_feat in feat_idx:
+            idx_base = feat_idx[base_feat]
+            idx_dev = feat_idx[dev_feat]
+
+            # Sumowanie wartości SHAP
+            phi_values[idx_base] = phi_values[idx_base] + phi_values[idx_dev]
+
+            # Zmiana nazwy na nową
+            feature_names[idx_base] = new_name
+
+            # Odznaczanie odcgyleń do usuniecia, aby nie dublowaly sie na wykresie SHAP
+            phi_values[idx_dev] = None
+            feature_names[idx_dev] = None
+            raw_values[idx_dev] = None
+
+    # Filtrowanie usuniętych cech, oznaczonych jako None
+    final_phi = [p for p in phi_values if p is not None]
+    final_names = [n for n in feature_names if n is not None]
+    final_raw = [r for r in raw_values if r is not None]
+
+    # Tłumaczenie wszystkich pozostałych nazw na polskie odpowiedniki
+    final_names = [polish_feature.get(n, n) for n in final_names]
+
+    # Konwertujemy na numpy array, co jest przyjazne dla SHAP
+    new_phi = np.array([final_phi])
+    new_x_vals = np.array([final_raw])
+
     # Budujemy obiekt Explanation przyjmowany przez wykresy SHAP
     shap_values = shap.Explanation(
-        values = phi,
-        base_values = np.array([ridge.intercept_]),     # Wartość bazowa – punkt startowy przed dodaniem wpływu cech
-        data = x_vals,                                  # Oryginalne (niestandaryzowane) wartości – wyświetlane na wykresie
-        feature_names = list(input_data.columns)        # Nazwy kolumn zgodne z wektorem 19 cech
+        values = new_phi,
+        base_values = np.array([ridge.intercept_]),        # Wartość bazowa – punkt startowy przed dodaniem wpływu cech
+        data = new_x_vals,                                      # Oryginalne (niestandaryzowane) wartości – wyświetlane na wykresie
+        feature_names = final_names                             # Nazwy kolumn zgodne z wektorem 17 cech
     )
 
     # Utworzenie tabeli łączącej nazwy kolumn z wartościami od SHAP
     df_shap = pd.DataFrame({
-        'features': input_data.columns,
-        'shap_values': shap_values.values[0]
+        'features': final_names,                            # Zestaw nazw po grupowaniu
+        'shap_values': shap_values.values[0],               # Zapisujemy dane wyliczone metoda SHAP
+        'raw_values': shap_values.data[0],                  # Zapisujemy surowe dane
     }).sort_values(by = 'shap_values', ascending = False)   # Sortowanie parametrów od najistotniejszego
 
     # Podział wartości na dodatnie i ujemne
@@ -70,12 +113,12 @@ def shap_section(model, input_data: pd.DataFrame):
             st.info("Brak parametrów o wyraźnie dodatnim wpływie")
         else:
             for _, row in df_plus.iterrows():
-                val = input_data[row['features']].values[0]
+                val = row['raw_values']
                 # Podmiana na polskie odpowiedniki
                 feature_name = polish_feature.get(row['features'], row['features'])
                 st.metric(
                     label = feature_name,                   # Nazwa cechy
-                    value = f"{val:.1f}",                   # Wartość cechy z formularza
+                    value = f"{float(val):.1f}",                   # Wartość cechy z formularza
                     delta = f"+{row['shap_values']:.2f}"    # Wpływ wartości SHAP w procentach
                 )
 
@@ -85,12 +128,12 @@ def shap_section(model, input_data: pd.DataFrame):
             st.info("Brak parametrów o wyraźnie negatywnym wpływie")
         else:
             for _, row in df_minus.iterrows():
-                val = input_data[row['features']].values[0]
+                val = row['raw_values']
                 # Podmiana na polskie odpowiedniki
                 feature_name = polish_feature.get(row['features'], row['features'])
                 st.metric(
                     label = feature_name,                   # Nazwa cechy
-                    value = f"{val:.1f}",                   # Wartość cechy z formularza
+                    value = f"{float(val):.1f}",                   # Wartość cechy z formularza
                     delta = f"{row['shap_values']:.2f}"     # Wpływ wartości SHAP w procentach
                 )
 

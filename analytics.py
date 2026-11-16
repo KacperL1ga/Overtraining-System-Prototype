@@ -1,8 +1,10 @@
 import pandas as pd
+
+from App import hrv_baseline, rhr_baseline
 from database import get_user_history
 
 # Funkcja do wyliczania baseline i odchyleń
-def calculate_baseline_deviation(user_id: str, curr_hrv: float, curr_rhr: float):
+def calculate_baseline_deviation(user_id: str, curr_hrv: float, curr_rhr: float, target_data = None):
     # Pobieranie historii danego uzytkownika z bazy
     df_history = get_user_history(user_id)
 
@@ -10,12 +12,28 @@ def calculate_baseline_deviation(user_id: str, curr_hrv: float, curr_rhr: float)
     if len(df_history) < 3:                                     # W przypadku zbyt małej ilości danych funkcja nic nie zwraca
         return None
 
-    if len(df_history) < 30:                                    # Po 3 dniach obliczane są odchylenia od baseline z poprzednich dni
-        hrv_baseline = df_history['hrv'].mean()
-        rhr_baseline = df_history['resting_heart_rate'].mean()
+    # Porządkujemy dane chronologicznie względem tabeli daty
+    df_history['date'] = pd.to_datetime(df_history['date'])
+    df_history = df_history.sort_values(by = 'date').reset_index(drop = True)   # Resetujemy dodatkowo indeksy pomiarów przy sortowaniu
+
+    # Tworzymy tabele zawierającą pomiary przed docelową datą
+    if target_data is not None:
+        target_dt = pd.to_datetime(target_data)
+        df_target_date = df_history[df_history['date'] < target_dt]
     else:
-        hrv_baseline = df_history['hrv'].tail(30).mean()        # Co miesiąc baseline jest aktualizowany jako średnia z 30 dni
-        rhr_baseline = df_history['resting_heart_rate'].tail(30).mean()
+        df_target_date = df_history
+
+    # Obliczamy baseline ze stałego okna dni poprzedzających
+    if len(df_target_date) >= 30:                                    # Co miesiąc baseline jest aktualizowany jako średnia z 30 dni
+        hrv_baseline = df_target_date['hrv'].tail(30)['hrv'].mean()
+        rhr_baseline = df_target_date['resting_heart_rate'].tail(30).mean()
+    elif len(df_target_date) >= 3:
+        hrv_baseline = df_target_date['hrv'].mean()
+        rhr_baseline = df_target_date['resting_heart_rate'].mean()
+    else:
+        first_3 = df_history.head(3)
+        hrv_baseline = first_3['hrv'].mean()        # Po 3 dniach obliczane są odchylenia od baseline z poprzednich dni
+        rhr_baseline = first_3['resting_heart_rate'].mean()
 
     # Obliczanie odchyleń od baseline'u
     hrv_deviation = curr_hrv - hrv_baseline

@@ -1,8 +1,56 @@
-__pycache__
-.pytest_cache/
-models_experiment/
-.idea
+# Środowiska wirtualne Pythona (biblioteki i ich aktualizacje)
 venv/
 .venv/
 env/
+ENV/
+env.bak/
+venv.bak/
 
+# Pakiety Pythona, pliki instalacji bibliotek i cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+.pip-cache/
+
+# Testy i pokrycie kodu
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Modele tymczasowe z eksperymentów strojenia parametrów
+models_experiment/
+
+# Konfiguracja środowisk IDE i edytorów
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Pliki systemowe
+.DS_Store
+Thumbs.db
+desktop.ini

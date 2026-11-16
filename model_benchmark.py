@@ -2,7 +2,7 @@ import time
 import numpy as np
 import pandas as pd
 
-from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
+from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor, HistGradientBoostingRegressor
 from sklearn.linear_model import Ridge, Lasso, LinearRegression
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error, accuracy_score
 from sklearn.model_selection import train_test_split
@@ -13,7 +13,7 @@ from xgboost import XGBRegressor
 
 
 def get_zone(score):
-    """Funkcja konwertująca wynik numeryczny na strefę regeneracji Whoop."""
+    # Funkcja konwertująca wynik numeryczny na strefę regeneracji Whoop.
     if score < 34:
         return "Czerwona 🔴"
     elif score < 67:
@@ -111,13 +111,23 @@ X_val_scaled = scaler.transform(X_val)
 # ================================================
 models = {
     "Ridge (Liniowy)": (Ridge(alpha=0.01), True),
-    "Lasso (liniowy": (Lasso(alpha=0.01), True),
+    "Lasso (liniowy)": (Lasso(alpha=0.01), True),
     "Logistic Regression": (LinearRegression(), True),
     "MLP (Sieć Neuronowa)": (MLPRegressor(hidden_layer_sizes=(128, 64), max_iter=300, early_stopping=True, random_state=42), True),
-    # "XGBoost": (XGBRegressor(max_depth=4, n_estimators=400, learning_rate=0.03, random_state=42, n_jobs=-1), False),
-    # "Random Forest": (RandomForestRegressor(n_estimators=150, max_depth=12, random_state=42, n_jobs=-1), False),
-    # "Extra Trees": (ExtraTreesRegressor(n_estimators=150, max_depth=12, random_state=42, n_jobs=-1), False),
-    # "K-Nearest Neighbors": (KNeighborsRegressor(n_neighbors=15, n_jobs=-1), True)
+    "XGBoost": (XGBRegressor(max_depth=4, n_estimators=400, learning_rate=0.03, random_state=42, n_jobs=-1), False),
+    "Random Forest": (RandomForestRegressor(n_estimators=150, max_depth=12, random_state=42, n_jobs=-1), False),
+    "HistGradientBoostingRegressor": (HistGradientBoostingRegressor(loss="squared_error",
+                                                                    learning_rate=0.03,
+                                                                    max_iter=1000,
+                                                                    max_leaf_nodes = 31,
+                                                                    min_samples_leaf = 50,
+                                                                    early_stopping = True,
+                                                                    random_state = 42,
+                                                                    l2_regularization = 1.0,
+
+                                                                    ), False),
+    "Extra Trees": (ExtraTreesRegressor(n_estimators=150, max_depth=12, random_state=42, n_jobs=-1), False),
+    "K-Nearest Neighbors": (KNeighborsRegressor(n_neighbors=15, n_jobs=-1), True)
 }
 
 # Pętla testująca

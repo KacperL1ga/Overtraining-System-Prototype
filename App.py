@@ -345,7 +345,7 @@ else:
     # Automatyczne wyznaczanie odbytego treningu na podstawie obciążenia treningowego
     workout_completed = 1 if activity_strain >= 4 else 0
 
-    result = calculate_baseline_deviation(user_id, hrv, rhr)
+    result = calculate_baseline_deviation(user_id, hrv, rhr, target_data = curr_date)
 
     if result is None:
         st.info("Wskaźnik regeneracji wymaga co najmniej 3 dni pomiarów.")
@@ -495,7 +495,7 @@ else:
             df_filtered['date'] = df_filtered['date'].dt.strftime('%Y-%m-%d')
             st.dataframe(df_filtered, width = "stretch")
 
-            # Sekcja modtfikacji danych
+            # Sekcja modyfikacji danych
             st.markdown("**🛠️ Modyfikacja wybranego wpisu**")
             action_date = st.date_input("Wybierz datę do edycji lub usunięcia", key = "action_date")
 

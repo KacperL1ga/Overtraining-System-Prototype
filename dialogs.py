@@ -158,7 +158,7 @@ def show_edit_dialog(user_id: str, action_date, model):
 
     if submitted:       # Po zatwierdzeniu zmiany przestępujemy do ponownego wylicznenia recovery score
         workout_completed = 1 if activity_strain > 0.0 else 0
-        res = calculate_baseline_deviation(user_id, hrv, rhr)       # Ponowne obliczanie odchyleń i baseline'ów
+        res = calculate_baseline_deviation(user_id, hrv, rhr, target_data = date_str)       # Ponowne obliczanie odchyleń i baseline'ów
         hrv_deviation, rhr_deviation, hrv_baseline, rhr_baseline = res if res else (0.0, 0.0, hrv, rhr)
 
         current_data = {
@@ -176,6 +176,41 @@ def show_edit_dialog(user_id: str, action_date, model):
         log_data.update({"user_id": user_id, "date": date_str, "recovery_score": new_score})    # Uzupełniene DataFrame o brakujące dane
 
         save_daily_logs(log_data)           # Zapis pomiarów do bazy danych
+
+        # Dodajemy logikę kaskadową do przeliczenia ponownie dni po edytowanym pomiarze
+        df_history_after = get_user_history(user_id)
+        df_history_after['date'] = pd.to_datetime(df_history_after['date'])     # konwersja formatu kolumny
+        df_history_after = df_history_after.sort_values('date')                 # Sortujemy po dacie
+
+        # Tworzymy tabele tylko z pomiarami po edytowanej dacie
+        df_to_recalc = df_history_after[df_history_after['date'] > pd.to_datetime(date_str)]
+
+        for index, future_row in df_to_recalc.iterrows():
+            f_date_str = future_row['date']
+
+            # Przeliczamy baseline ponownie dla każdego następnego dnia
+            res_f = calculate_baseline_deviation(user_id, future_row['hrv'], future_row['resting_hear_rate'], target_data = f_date_str)
+
+            if res_f:
+                new_hrv_dev, new_rhr_dev, new_hrv_baseline, new_rhr_baseline = res_f
+
+                # Tworzymy nowy słownik z zaktualizowanymi odchyleniami
+                new_current_data = future_row.to_dict()
+                new_current_data.update({
+                    'hrv_baseline': new_hrv_baseline,
+                    'rhr_baseline': new_rhr_baseline,
+                    'hrv_deviation': new_hrv_dev,
+                    'rhr_deviation': new_rhr_dev,
+                })
+
+                # Używamy modelu do wyliczenia nowych recovery_score dla późniejszych dni
+                new_input_data = input_features_table(user_id, new_current_data)
+                new_new_score = floatt(np.clip(model.predict(new_input_data)[0], 0.0, 100.0))
+
+                new_current_data['recovery_score'] = new_new_score # Przypisujemy nowe wyliczenia
+
+                # Zapisujemy wszystko do bazy
+                save_daily_logs(new_current_data)
 
         # Przy pomyślnym zapisie dostaniemy komunikat z informacją o różnicy w recovery_score
         st.success("Pomyślnie zaktualizowano dane!")
